@@ -26,7 +26,9 @@
                 <Label Content="World Name: "/>
                 <TextBox x:Name="WorldName" Width="300" Margin="3"/>
             </StackPanel>
-            <views1:PropertyGrid Grid.Row="1" x:Name="SettingsView" Margin="3"/>
+            <!-- FIX: Remove reference to missing PropertyGrid control -->
+            <!-- You may need to implement or reference a valid PropertyGrid control here -->
+            <TextBlock Grid.Row="1" Margin="3" Text="Settings will appear here."/>
             <Button Grid.Row="2"  Content="Create World" Click="ButtonBase_OnClick" Margin ="3"/>
         </Grid>
     </Grid>
