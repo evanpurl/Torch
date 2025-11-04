@@ -3,55 +3,36 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36623.8
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Torch", "Torch\Torch.csproj", "{7E01635C-3B67-472E-BCD6-C5539564F214}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Torch", "Torch\Torch.csproj", "{7E01635C-3B67-472E-BCD6-C5539564F214}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Torch.API", "Torch.API\Torch.API.csproj", "{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Torch.API", "Torch.API\Torch.API.csproj", "{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Torch.Server", "Torch.Server\Torch.Server.csproj", "{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7AD02A71-1D4C-48F9-A8C1-789A5512424F}"
-	ProjectSection(SolutionItems) = preProject
-		NLog-user.config = NLog-user.config
-		NLog.config = NLog.config
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Versioning", "Versioning", "{762F6A0D-55EF-4173-8CDE-309D183F40C4}"
-	ProjectSection(SolutionItems) = preProject
-		Versioning\AssemblyVersion.cs = Versioning\AssemblyVersion.cs
-	EndProjectSection
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Torch.Server", "Torch.Server\Torch.Server.csproj", "{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Torch.Mod", "Torch.Mod\Torch.Mod.shproj", "{3CE4D2E9-B461-4F19-8233-F87E0DFDDD74}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7AD02A71-1D4C-48F9-A8C1-789A5512424F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Versioning", "Versioning", "{762F6A0D-55EF-4173-8CDE-309D183F40C4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
-		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
-		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7E01635C-3B67-472E-BCD6-C5539564F214}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{7E01635C-3B67-472E-BCD6-C5539564F214}.Debug|Any CPU.Build.0 = Debug|x64
-		{7E01635C-3B67-472E-BCD6-C5539564F214}.Debug|x64.ActiveCfg = Debug|x64
-		{7E01635C-3B67-472E-BCD6-C5539564F214}.Debug|x64.Build.0 = Debug|x64
-		{7E01635C-3B67-472E-BCD6-C5539564F214}.Release|Any CPU.ActiveCfg = Release|x64
-		{7E01635C-3B67-472E-BCD6-C5539564F214}.Release|x64.ActiveCfg = Release|x64
-		{7E01635C-3B67-472E-BCD6-C5539564F214}.Release|x64.Build.0 = Release|x64
-		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Debug|Any CPU.Build.0 = Debug|x64
-		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Debug|x64.ActiveCfg = Debug|x64
-		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Debug|x64.Build.0 = Debug|x64
-		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Release|Any CPU.ActiveCfg = Release|x64
-		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Release|x64.ActiveCfg = Release|x64
-		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Release|x64.Build.0 = Release|x64
-		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Debug|Any CPU.Build.0 = Debug|x64
-		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Debug|x64.ActiveCfg = Debug|x64
-		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Debug|x64.Build.0 = Debug|x64
-		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Release|Any CPU.ActiveCfg = Release|x64
-		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Release|Any CPU.Build.0 = Release|x64
-		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Release|x64.ActiveCfg = Release|x64
-		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Release|x64.Build.0 = Release|x64
+		{7E01635C-3B67-472E-BCD6-C5539564F214}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E01635C-3B67-472E-BCD6-C5539564F214}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E01635C-3B67-472E-BCD6-C5539564F214}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E01635C-3B67-472E-BCD6-C5539564F214}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBA5D932-6254-4A1E-BAF4-E229FA94E3C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA50886B-7B22-4CD8-93A0-C06F38D4F77D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -60,12 +41,10 @@ Global
 		{762F6A0D-55EF-4173-8CDE-309D183F40C4} = {7AD02A71-1D4C-48F9-A8C1-789A5512424F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {BB51D91F-958D-4B63-A897-3C40642ACD3E}
+		        SolutionGuid = {BB51D91F-958D-4B63-A897-3C40642ACD3E}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Torch.Mod\Torch.Mod.projitems*{3ce4d2e9-b461-4f19-8233-f87e0dfddd74}*SharedItemsImports = 13
-	EndGlobalSection
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
+		Torch.Mod\Torch.Mod.projitems*{7e01635c-3b67-472e-bcd6-c5539564f214}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal

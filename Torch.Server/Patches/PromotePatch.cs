@@ -23,7 +23,7 @@ namespace Torch.Patches
 
         public static void Patch(PatchContext ctx)
         {
-            _log.Info("patching promote");
+            Console.WriteLine("patching promote");
             ctx.GetPattern(typeof(MySession).GetMethod("OnPromoteLevelSet", BindingFlags.NonPublic | BindingFlags.Static)).Prefixes.Add(typeof(PromotePatch).GetMethod(nameof(PromotePrefix)));
         }
 

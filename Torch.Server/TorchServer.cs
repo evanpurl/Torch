@@ -1,5 +1,11 @@
 ﻿#region
 
+using NLog;
+using Sandbox;
+using Sandbox.Engine.Networking;
+using Sandbox.Game;
+using Sandbox.Game.Multiplayer;
+using Sandbox.Game.World;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,12 +15,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using NLog;
-using Sandbox;
-using Sandbox.Engine.Networking;
-using Sandbox.Game;
-using Sandbox.Game.Multiplayer;
-using Sandbox.Game.World;
 using Torch.API;
 using Torch.API.Managers;
 using Torch.API.Session;
@@ -25,6 +25,7 @@ using Torch.Mod;
 using Torch.Mod.Messages;
 using Torch.Server.Commands;
 using Torch.Server.Managers;
+using Torch.Session;
 using Torch.Utils;
 using VRage;
 using VRage.Dedicated;
@@ -65,16 +66,25 @@ namespace Torch.Server
         {
             DedicatedInstance = new InstanceManager(this);
             AddManager(DedicatedInstance);
-            AddManager(new EntityControlManager(this));
             AddManager(new RemoteAPIManager(this));
-            AddManager(new UpdateManager(this));
             AddManager(new GameUpdateManager(this));
 
-            Managers.GetManager<UpdateManager>().CheckAndUpdateTorch();
-            
+            // Ensure session manager exists (GUI used to do this implicitly)
             var sessionManager = Managers.GetManager<ITorchSessionManager>();
-            sessionManager.AddFactory(x => new MultiplayerManagerDedicated(this));
-            
+            if (sessionManager == null)
+            {
+                Console.WriteLine("SessionManager not found; creating manually.");
+                sessionManager = new TorchSessionManager(this);
+                Managers.AddManager(sessionManager);
+            }
+
+            // register factory(ies) that depend on it
+            sessionManager.AddFactory(_ => new MultiplayerManagerDedicated(this));
+
+            // (Optional) you can hook events here or in Init()
+            sessionManager.SessionStateChanged += OnSessionStateChanged;
+
+
             // Needs to be done at some point after MyVRageWindows.Init
             // where the debug listeners are registered
             if (!((TorchConfig)Config).EnableAsserts)
@@ -148,17 +158,33 @@ namespace Torch.Server
         /// <inheritdoc />
         public override void Init()
         {
-            var updateManager = Managers.GetManager<UpdateManager>();
-            
-            Log.Info("Initializing server");
+            Console.WriteLine("Initializing server");
             MySandboxGame.IsDedicated = true;
-            base.Init();
-            Managers.GetManager<ITorchSessionManager>().SessionStateChanged += OnSessionStateChanged;
-            GetManager<InstanceManager>().LoadInstance(Config.InstancePath);
-            CanRun = true;
-            Initialized?.Invoke(this);
-            Log.Info($"Initialized server '{Config.InstanceName}' at '{Config.InstancePath}'");
+
+            try
+            {
+                base.Init();
+
+                var sessionManager = Managers.GetManager<ITorchSessionManager>();
+                if (sessionManager == null)
+                    throw new InvalidOperationException("SessionManager was null after base.Init");
+
+                sessionManager.SessionStateChanged += OnSessionStateChanged;
+
+                GetManager<InstanceManager>().LoadInstance(Config.InstancePath);
+
+                CanRun = true;
+                Initialized?.Invoke(this);
+                Console.WriteLine($"Initialized server '{Config.InstanceName}' at '{Config.InstancePath}'");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[Init ERROR] {ex}");
+                throw;
+            }
         }
+
+
 
         /// <inheritdoc />
         public override void Start()
@@ -177,8 +203,9 @@ namespace Torch.Server
             HasRun = true;
             CanRun = false;
             PatchManager.CommitInternal();
-            Log.Info("Starting server.");
-            MySandboxGame.ConfigDedicated = DedicatedInstance.DedicatedConfig.Model;
+            Console.WriteLine("Starting server.");
+            MySandboxGame.ConfigDedicated = DedicatedInstance.DedicatedConfig;
+
 
             _uptime = Stopwatch.StartNew();
             base.Start();
@@ -189,9 +216,9 @@ namespace Torch.Server
         {
             if (State == ServerState.Stopped)
                 Log.Error("Server is already stopped");
-            Log.Info("Stopping server.");
+            Console.WriteLine("Stopping server.");
             base.Stop();
-            Log.Info("Server stopped.");
+            Console.WriteLine("Server stopped.");
 
             State = ServerState.Stopped;
             IsRunning = false;
@@ -206,7 +233,7 @@ namespace Torch.Server
             if (Config.DisconnectOnRestart)
             {
                 ModCommunication.SendMessageToClients(new JoinServerMessage("0.0.0.0:25555"));
-                Log.Info("Ejected all players from server for restart.");
+                Console.WriteLine("Ejected all players from server for restart.");
             }
 
             if (IsRunning && save)
@@ -275,7 +302,7 @@ namespace Torch.Server
 
             if (_watchdog == null && Config.TickTimeout > 0)
             {
-                Log.Info("Starting server watchdog.");
+                Console.WriteLine("Starting server watchdog.");
                 _watchdog = new Timer(CheckServerResponding, this, TimeSpan.Zero,
                     TimeSpan.FromSeconds(Config.TickTimeout));
             }
@@ -348,7 +375,8 @@ namespace Torch.Server
                 // ignored
             }
 
-            var stack = new StackTrace(thread, true);
+            Console.WriteLine("Unable to capture another thread’s stack trace on .NET Core. Dumping watchdog thread stack instead.");
+            var stack = new StackTrace(true);
             try
             {
                 thread.Resume();

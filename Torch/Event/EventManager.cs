@@ -34,7 +34,7 @@ namespace Torch.Event
                 if (!_dispatchShims.Add(type))
                     return;
             if (!type.IsSealed || !type.IsAbstract)
-                _log.Warn($"Registering type {type.FullName} as an event dispatch type, even though it isn't declared singleton");
+                Console.WriteLine($"Registering type {type.FullName} as an event dispatch type, even though it isn't declared singleton");
             var listsFound = 0;
             RuntimeHelpers.RunClassConstructor(type.TypeHandle);
             foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
@@ -51,7 +51,7 @@ namespace Torch.Event
 
                 }
             if (listsFound == 0)
-                _log.Warn($"Registering type {type.FullName} as an event dispatch type, even though it has no event lists.");
+                Console.WriteLine($"Registering type {type.FullName} as an event dispatch type, even though it has no event lists.");
         }
 
 
@@ -105,7 +105,7 @@ namespace Torch.Event
                 _log.Error($"Unable to find event handler list for event type {eventType.FullName}");
             }
             if (!foundHandler)
-                _log.Warn($"Found no handlers in {instance.GetType().FullName} or base types");
+                Console.WriteLine($"Found no handlers in {instance.GetType().FullName} or base types");
 
         }
 

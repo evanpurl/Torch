@@ -154,8 +154,8 @@ quit";
                 {
                     var pid = int.Parse(Config.WaitForPID);
                     var waitProc = Process.GetProcessById(pid);
-                    Log.Info("Continuing in 5 seconds.");
-                    Log.Warn($"Waiting for process {pid} to close");
+                    Console.WriteLine("Continuing in 5 seconds.");
+                    Console.WriteLine($"Waiting for process {pid} to close");
                     while (!waitProc.HasExited)
                     {
                         Console.Write(".");
@@ -203,9 +203,6 @@ quit";
                 });
                 
                 gameThread.Start();
-                
-                var ui = new TorchUI(_server);
-                ui.ShowDialog();
             }
         }
 
@@ -215,11 +212,11 @@ quit";
             var configPath = Path.Combine(Directory.GetCurrentDirectory(), configName);
             if (File.Exists(configName))
             {
-                Log.Info($"Loading config {configName}");
+                Console.WriteLine($"Loading config {configName}");
             }
             else
             {
-                Log.Info($"Generating default config at {configPath}");
+                Console.WriteLine($"Generating default config at {configPath}");
             }
             ConfigPersistent = Persistent<TorchConfig>.Load(configPath);
         }
@@ -240,13 +237,13 @@ quit";
             {
                 try
                 {
-                    log.Info("Downloading SteamCMD.");
+                    Console.WriteLine("Downloading SteamCMD.");
                     using (var client = new WebClient())
                         client.DownloadFile("https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip", STEAMCMD_ZIP);
 
                     ZipFile.ExtractToDirectory(STEAMCMD_ZIP, STEAMCMD_DIR);
                     File.Delete(STEAMCMD_ZIP);
-                    log.Info("SteamCMD downloaded successfully!");
+                    Console.WriteLine("SteamCMD downloaded successfully!");
                 }
                 catch (Exception e)
                 {
@@ -256,7 +253,7 @@ quit";
                 }
             }
 
-            log.Info("Checking for DS updates.");
+            Console.WriteLine("Checking for DS updates.");
             var steamCmdProc = new ProcessStartInfo(STEAMCMD_PATH, "+runscript runscript.txt")
             {
                 WorkingDirectory = Path.Combine(Directory.GetCurrentDirectory(), STEAMCMD_DIR),
@@ -269,7 +266,7 @@ quit";
             // ReSharper disable once PossibleNullReferenceException
             while (!cmd.HasExited)
             {
-                log.Info(cmd.StandardOutput.ReadLine());
+                Console.WriteLine(cmd.StandardOutput.ReadLine());
                 Thread.Sleep(100);
             }
         }
@@ -310,7 +307,7 @@ quit";
                 return;
             }
             
-            Log.Fatal(ex);
+            Console.WriteLine(ex);
             
             if (ex is ReflectionTypeLoadException extl)
             {
@@ -332,7 +329,7 @@ quit";
             var shortdateWithTime = DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss");
             
             var dumpPath = $"Logs\\MiniDumpT{Thread.CurrentThread.ManagedThreadId}-{shortdateWithTime}.dmp";
-            Log.Info($"Generating minidump at {dumpPath}");
+            Console.WriteLine($"Generating minidump at {dumpPath}");
             var dumpFlags = MyMiniDump.Options.Normal | MyMiniDump.Options.WithProcessThreadData | MyMiniDump.Options.WithThreadInfo;
             MyVRage.Platform.CrashReporting.WriteMiniDump(dumpPath, dumpFlags, IntPtr.Zero);
 

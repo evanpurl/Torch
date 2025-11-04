@@ -70,7 +70,7 @@ namespace Torch.Managers.PatchManager.Transpile
                 foreach (var label in instructions[i].Labels)
                 {
                     if (targets.TryGetValue(label, out var other))
-                        _log.Warn($"Label {label} is applied to ({i}: {instructions[i]}) and ({other}: {instructions[other]})");
+                        Console.WriteLine($"Label {label} is applied to ({i}: {instructions[i]}) and ({other}: {instructions[other]})");
                     targets[label] = i;
                 }
 
@@ -153,7 +153,7 @@ namespace Torch.Managers.PatchManager.Transpile
                 foreach (var label in instructions[i].Labels)
                 {
                     if (targets.TryGetValue(label, out var other))
-                        _log.Warn($"Label {label} is applied to ({i}: {instructions[i]}) and ({other}: {instructions[other]})");
+                        Console.WriteLine($"Label {label} is applied to ({i}: {instructions[i]}) and ({other}: {instructions[other]})");
                     targets[label] = i;
                 }
 

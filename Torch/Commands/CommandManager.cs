@@ -63,7 +63,7 @@ namespace Torch.Commands
 
                 var command = new Command(plugin, method);
                 var cmdPath = string.Join(".", command.Path);
-                _log.Info($"Registering command '{cmdPath}'");
+                Console.WriteLine($"Registering command '{cmdPath}'");
 
                 if (!Commands.AddCommand(command))
                     _log.Error($"Command path {cmdPath} is already registered.");
@@ -94,12 +94,12 @@ namespace Torch.Commands
 
             var splitArgs = Regex.Matches(argText, "(\"[^\"]+\"|\\S+)").Cast<Match>().Select(x => x.ToString().Replace("\"", "")).ToList();
             _log.Trace($"Invoking {cmdPath} for server.");
-            _log.Info($"Server is running command '{message}'...");
+            Console.WriteLine($"Server is running command '{message}'...");
             var context = new ConsoleCommandContext(Torch, command.Plugin, Sync.MyId, argText, splitArgs);
             if (subscriber != null)
                 context.OnResponse += subscriber;
             if (command.TryInvoke(context))
-                _log.Info($"Server ran command '{message}'");
+                Console.WriteLine($"Server ran command '{message}'");
             else
                 context.Respond($"Invalid Syntax: {command.SyntaxHelp}");
             return context.Responses;
@@ -159,7 +159,7 @@ namespace Torch.Commands
                 {
                     if (!defaultPermission)
                     {
-                        _log.Info($"{player.DisplayName} tried to use command {cmdPath} without permission");
+                        Console.WriteLine($"{player.DisplayName} tried to use command {cmdPath} without permission");
                         _chatManager.SendMessageAsOther(null, $"You need to be a {command.MinimumPromoteLevel} or higher to use that command.", targetSteamId: steamId);
                         return;
                     }
@@ -167,12 +167,12 @@ namespace Torch.Commands
 
                 var splitArgs = Regex.Matches(argText, "(\"[^\"]+\"|\\S+)").Cast<Match>().Select(x => x.ToString().Replace("\"", "")).ToList();
                 _log.Trace($"Invoking {cmdPath} for player {player.DisplayName}");
-                _log.Info($"Player {player.DisplayName} is running command '{message}'...");
+                Console.WriteLine($"Player {player.DisplayName} is running command '{message}'...");
                 var context = new CommandContext(Torch, command.Plugin, steamId, argText, splitArgs);
                 Torch.Invoke(() =>
                 {
                     if (command.TryInvoke(context))
-                        _log.Info($"Player {player.DisplayName} ran command '{message}'");
+                        Console.WriteLine($"Player {player.DisplayName} ran command '{message}'");
                     else
                         context.Respond($"Invalid Syntax: {command.SyntaxHelp}");
                 });

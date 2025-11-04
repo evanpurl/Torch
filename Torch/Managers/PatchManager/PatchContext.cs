@@ -24,12 +24,16 @@ namespace Torch.Managers.PatchManager
         /// <returns></returns>
         public MethodRewritePattern GetPattern(MethodBase method)
         {
-            if (_rewritePatterns.TryGetValue(method, out MethodRewritePattern pattern))
-                return pattern;
-            MethodRewritePattern parent = PatchManager.GetPatternInternal(method);
-            var res = new MethodRewritePattern(parent);
-            _rewritePatterns.Add(method, res);
-            return res;
+            if (method == null)
+                throw new ArgumentNullException(nameof(method),
+                    "Target method was null. The patch likely failed to resolve the method via reflection.");
+
+            if (!_rewritePatterns.TryGetValue(method, out var pattern))
+            {
+                pattern = new DecoratedMethod(method);
+                _rewritePatterns[method] = pattern;
+            }
+            return pattern;
         }
 
         /// <summary>

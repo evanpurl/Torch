@@ -58,7 +58,7 @@ namespace Torch.API.WebAPI
 
         public static async Task<bool> TestApiConnection()
         {
-            Log.Warn("Testing connection to API");
+            Console.WriteLine("Testing connection to API");
 
             try
             {
@@ -69,7 +69,7 @@ namespace Torch.API.WebAPI
             
                     if (!response.IsSuccessStatusCode)
                     {
-                        Log.Warn($"API responded with status: {response.StatusCode}");
+                        Console.WriteLine($"API responded with status: {response.StatusCode}");
                         return false;
                     }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -68,10 +69,34 @@ namespace Torch.Managers.PatchManager
         /// <param name="method"></param>
         public static void Compile(DynamicMethod method)
         {
-            // Force it to compile
-            RuntimeMethodHandle handle = _getMethodHandle.Invoke(method);
-            object runtimeMethodInfo = _getMethodInfo.Invoke(handle);
-            _compileDynamicMethod.Invoke(runtimeMethodInfo);
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
+
+            // DynamicMethod derives from MethodInfo, so this is safe.
+            var mi = (MethodInfo)method;
+
+            // Build a delegate type matching the signature (params..., return)
+            var paramTypes = mi.GetParameters().Select(p => p.ParameterType).ToArray();
+            var returnType = mi.ReturnType;
+
+            var delegateType = CreateDelegateType(paramTypes, returnType);
+
+            // Create and "prepare" the delegate; this finalizes IL and JITs it
+            var del = method.CreateDelegate(delegateType);
+            RuntimeHelpers.PrepareDelegate(del);
+            // No invocation necessary here; JIT preparation is enough.
+        }
+
+        private static Type CreateDelegateType(Type[] parameterTypes, Type returnType)
+        {
+            // Expression.GetDelegateType supports both void and non-void return.
+            // For void, the return type must be omitted, but Expression.GetDelegateType
+            // requires including return type; for void, use typeof(void).
+            var typeArgs = (returnType == typeof(void))
+                ? parameterTypes.Concat(new[] { typeof(void) }).ToArray()
+                : parameterTypes.Concat(new[] { returnType }).ToArray();
+
+            return Expression.GetDelegateType(typeArgs);
         }
     }
 }

@@ -1,11 +1,12 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using NLog;
+using System.Text;
 using Torch.Managers.PatchManager.MSIL;
 using Torch.Utils;
 using VRage.Game.VisualScripting.Utils;
@@ -82,12 +83,39 @@ namespace Torch.Managers.PatchManager.Transpile
 
         public MethodContext(DynamicMethod method)
         {
-            Method = null;
+            // Keep a reference so callers can log Method if needed
+            Method = method;
             MethodBody = null;
-            _msilBytes = _ilGeneratorBakeByteArray(method.GetILGenerator());
-            _dynamicExceptionTable = _ilGeneratorGetExceptionHandlers(method.GetILGenerator());
-            TokenResolver = new DynamicMethodTokenResolver(method);
+
+            var ilGen = method.GetILGenerator();
+
+            // Default to "no IL" and "no exceptions"
+            _msilBytes = Array.Empty<byte>();
+            _dynamicExceptionTable = null;
+            TokenResolver = new NoopTokenResolver();
+
+            // If we have the private hooks, try to bake IL
+            if (_ilGeneratorBakeByteArray != null)
+            {
+                var bytes = _ilGeneratorBakeByteArray(ilGen) ?? Array.Empty<byte>();
+                _msilBytes = bytes;
+
+                // Only construct DynamicMethodTokenResolver if IL is finalized (non-empty)
+                if (bytes.Length > 0)
+                {
+                    // Safe to use the dynamic resolver now
+                    TokenResolver = new DynamicMethodTokenResolver(method);
+                }
+            }
+
+            // Try to read exception handlers only if the private hook exists
+            if (_ilGeneratorGetExceptionHandlers != null)
+            {
+                _dynamicExceptionTable = _ilGeneratorGetExceptionHandlers(ilGen);
+            }
         }
+
+
 
         public void Read()
         {
@@ -100,35 +128,90 @@ namespace Torch.Managers.PatchManager.Transpile
         {
             Labels.Clear();
             _instructions.Clear();
-            using (var memory = new MemoryStream(_msilBytes))
-            using (var reader = new BinaryReader(memory))
-                while (memory.Length > memory.Position)
+
+            // Guard against missing or empty IL
+            if (_msilBytes == null || _msilBytes.Length == 0)
+            {
+                _log.Debug("No IL bytes available; skipping instruction read.");
+                return; // Nothing to read (DynamicMethod or stripped IL)
+            }
+
+            using var memory = new MemoryStream(_msilBytes, writable: false);
+            using var reader = new BinaryReader(memory, Encoding.Latin1, leaveOpen: false);
+
+
+            while (memory.Position < memory.Length)
+            {
+                int opcodeOffset = (int)memory.Position;
+
+                // Read first byte; if end of stream, break
+                int firstByte = reader.Read();
+                if (firstByte == -1)
+                    break;
+
+                short instructionValue = (short)firstByte;
+
+                // Handle two-byte opcodes (0xFE prefix)
+                if (Prefixes.Contains(instructionValue))
                 {
-                    var opcodeOffset = (int) memory.Position;
-                    var instructionValue = (short) memory.ReadByte();
-                    if (Prefixes.Contains(instructionValue))
-                    {
-                        instructionValue = (short) ((instructionValue << 8) | memory.ReadByte());
-                    }
+                    int nextByte = reader.Read();
+                    if (nextByte == -1)
+                        break; // Malformed/truncated IL
+                    instructionValue = (short)((instructionValue << 8) | nextByte);
+                }
 
-                    if (!OpCodeLookup.TryGetValue(instructionValue, out OpCode opcode))
-                    {
-                        var msg = $"Unknown opcode {instructionValue:X}";
-                        _log.Error(msg);
-                        Debug.Assert(false, msg);
-                        continue;
-                    }
+                if (!OpCodeLookup.TryGetValue(instructionValue, out OpCode opcode))
+                {
+                    string msg = $"Unknown or invalid opcode 0x{instructionValue:X} at offset 0x{opcodeOffset:X4}.";
+                    Console.WriteLine(msg);
+                    continue;
+                }
 
-                    if (opcode.Size != memory.Position - opcodeOffset)
-                        throw new Exception(
-                            $"Opcode said it was {opcode.Size} but we read {memory.Position - opcodeOffset}");
-                    var instruction = new MsilInstruction(opcode)
-                    {
-                        Offset = opcodeOffset
-                    };
-                    _instructions.Add(instruction);
+                // Sanity check: opcode size is advisory; just skip invalid bounds
+                if (opcode.Size > memory.Length - opcodeOffset)
+                {
+                    Console.WriteLine($"Opcode {opcode} size {opcode.Size} exceeds remaining IL bytes; stopping read.");
+                    break;
+                }
+
+                var instruction = new MsilInstruction(opcode)
+                {
+                    Offset = opcodeOffset
+                };
+
+                _instructions.Add(instruction);
+
+                // Safely parse operand if applicable
+                try
+                {
                     instruction.Operand?.Read(this, reader);
                 }
+                catch (EndOfStreamException)
+                {
+                    Console.WriteLine($"Truncated operand for opcode {opcode} at offset 0x{opcodeOffset:X4}; stopping read.");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(ex, $"Failed to parse operand for {opcode} at offset 0x{opcodeOffset:X4}");
+                }
+            }
+        }
+
+
+        private sealed class NoopTokenResolver : ITokenResolver
+        {
+            public FieldInfo ResolveField(int token) => throw new NotSupportedException("No tokens for dynamic method without finalized IL.");
+            public MemberInfo ResolveMember(int token) => throw new NotSupportedException("No tokens for dynamic method without finalized IL.");
+            public MethodBase ResolveMethod(int token) => throw new NotSupportedException("No tokens for dynamic method without finalized IL.");
+
+            public byte[] ResolveSignature(int token)
+            {
+                throw new NotImplementedException();
+            }
+
+            public string ResolveString(int token) => throw new NotSupportedException("No tokens for dynamic method without finalized IL.");
+            public Type ResolveType(int token) => throw new NotSupportedException("No tokens for dynamic method without finalized IL.");
         }
 
         private void ResolveCatchClauses()

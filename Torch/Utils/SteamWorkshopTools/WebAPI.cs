@@ -63,7 +63,7 @@ namespace Torch.Utils.SteamWorkshopTools
             cbManager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
             cbManager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
 
-            Log.Info("Connecting to Steam...");
+            Console.WriteLine("Connecting to Steam...");
 
             steamClient.Connect();
 
@@ -207,7 +207,7 @@ namespace Torch.Utils.SteamWorkshopTools
 
             public void Print()
             {
-                Log.Info($"{new string(' ', Offset)}{Data.Name}: {Data.Value}");
+                Console.WriteLine($"{new string(' ', Offset)}{Data.Name}: {Data.Value}");
             }
         }
 
@@ -237,7 +237,7 @@ namespace Torch.Utils.SteamWorkshopTools
 #region CALLBACKS
         private void OnConnected( SteamClient.ConnectedCallback callback)
         {
-            Log.Info("Connected to Steam! Logging in '{0}'...", Username);
+            Console.WriteLine("Connected to Steam! Logging in '{0}'...", Username);
             if( Username == "anonymous" )
                 steamUser.LogOnAnonymous();
             else
@@ -250,7 +250,7 @@ namespace Torch.Utils.SteamWorkshopTools
 
         private void OnDisconnected( SteamClient.DisconnectedCallback callback )
         {
-            Log.Info("Disconnected from Steam");
+            Console.WriteLine("Disconnected from Steam");
             IsReady = false;
             IsRunning = false;
         }
@@ -263,27 +263,27 @@ namespace Torch.Utils.SteamWorkshopTools
                 if( callback.Result == EResult.AccountLogonDenied )
                 {
                     msg = "Unable to logon to Steam: This account is Steamguard protected.";
-                    Log.Warn(msg);
+                    Console.WriteLine(msg);
                     logonTaskCompletionSource.SetException(new Exception(msg));
                     IsRunning = false;
                     return;
                 }
 
                 msg = $"Unable to logon to Steam: {callback.Result} / {callback.ExtendedResult}";
-                Log.Warn(msg);
+                Console.WriteLine(msg);
                 logonTaskCompletionSource.SetException(new Exception(msg));
                 IsRunning = false;
                 return;
             }
             IsReady = true;
-            Log.Info("Successfully logged on!");
+            Console.WriteLine("Successfully logged on!");
             logonTaskCompletionSource.SetResult(true);
         }
 
         private void OnLoggedOff( SteamUser.LoggedOffCallback callback )
         {
             IsReady = false;
-            Log.Info($"Logged off of Steam: {callback.Result}");
+            Console.WriteLine($"Logged off of Steam: {callback.Result}");
         }
 #endregion
 

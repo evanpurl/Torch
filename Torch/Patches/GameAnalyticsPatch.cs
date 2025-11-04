@@ -23,7 +23,7 @@ namespace Torch.Patches
                 BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
             if (loggerField == null)
             {
-                _log.Warn("GALogger logger field is unknown.  Logging may not function.");
+                Console.WriteLine("GALogger logger field is unknown.  Logging may not function.");
                 return;
             }
             RuntimeHelpers.RunClassConstructor(type.TypeHandle);
@@ -33,7 +33,7 @@ namespace Torch.Patches
             ConstructorInfo ctor = type.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new Type[0], new ParameterModifier[0]);
             if (ctor == null)
             {
-                _log.Warn("GALogger constructor is unknown.  Logging may not function.");
+                Console.WriteLine("GALogger constructor is unknown.  Logging may not function.");
                 return;
             }
             ctx.GetPattern(ctor).Prefixes.Add(typeof(GameAnalyticsPatch).GetMethod(nameof(PatchLogger),

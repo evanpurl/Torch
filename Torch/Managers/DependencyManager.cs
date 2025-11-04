@@ -171,7 +171,7 @@ namespace Torch.Managers
                         }
                     }
                     else if (!dependency.Optional && _parentProviders.All(x => x.GetManager(dependency.DependencyType) == null))
-                        _log.Warn("Unable to satisfy dependency {0} ({1}) of {2}.", dependency.DependencyType.Name,
+                        Console.WriteLine("Unable to satisfy dependency {0} ({1}) of {2}.", dependency.DependencyType.Name,
                             dependency.Field.Name, manager.Instance.GetType().Name);
                 }
                 manager.UnsolvedDependencies = inFactor;
@@ -195,13 +195,13 @@ namespace Torch.Managers
                 dagQueue.RemoveRange(dagQueue.Count - tmpQueue.Count, tmpQueue.Count);
                 if (tmpQueue.Count == 0)
                 {
-                    _log.Fatal("Dependency loop detected in the following managers:");
+                    Console.WriteLine("Dependency loop detected in the following managers:");
                     foreach (ManagerInstance manager in dagQueue)
                     {
-                        _log.Fatal("   + {0} has {1} unsolved dependencies.", manager.Instance.GetType().FullName, manager.UnsolvedDependencies);
-                        _log.Fatal("        - Dependencies: {0}",
+                        Console.WriteLine("   + {0} has {1} unsolved dependencies.", manager.Instance.GetType().FullName, manager.UnsolvedDependencies);
+                        Console.WriteLine("        - Dependencies: {0}",
                             string.Join(", ", manager.Dependencies.Select(x => x.DependencyType.Name + (x.Optional ? " (Optional)" : ""))));
-                        _log.Fatal("        - Dependents: {0}",
+                        Console.WriteLine("        - Dependents: {0}",
                             string.Join(", ", manager.Dependents.Select(x => x.Instance.GetType().Name)));
                     }
                     throw new InvalidOperationException("Unable to satisfy all required manager dependencies");

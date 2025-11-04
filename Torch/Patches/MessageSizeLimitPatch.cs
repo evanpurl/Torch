@@ -14,13 +14,13 @@ namespace Torch.Patches
         {
             context.GetPattern(typeof(MyMultiplayerBase).GetMethod("OnChatMessageReceived_Server", BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance)).Prefixes.Add(typeof(MessageSizeLimitPatch).GetMethod(nameof(PrefixHandleChatMessage), BindingFlags.Static | BindingFlags.NonPublic));
             context.GetPattern(typeof(MyMultiplayerBase).GetMethod("OnScriptedChatMessageReceived", BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance)).Prefixes.Add(typeof(MessageSizeLimitPatch).GetMethod(nameof(PrefixHandleScriptedMessage), BindingFlags.Static | BindingFlags.NonPublic));
-            _log.Info("Patched MessageSizeLimit");
+            Console.WriteLine("Patched MessageSizeLimit");
         }
         private static bool PrefixHandleChatMessage(ChatMsg msg)
         {
             if (msg.Text.Length > 2048)
             {
-                _log.Warn("Attempted message with character count greater than 2048");
+                Console.WriteLine("Attempted message with character count greater than 2048");
                 return false;
             }
             return true;
@@ -29,7 +29,7 @@ namespace Torch.Patches
         {
             if (msg.Text.Length > 2048)
             {
-                _log.Warn("Attempted message with character count greater than 2048");
+                Console.WriteLine("Attempted message with character count greater than 2048");
                 return false;
             }
             return true;

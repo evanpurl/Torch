@@ -26,7 +26,7 @@ namespace Torch.Patches
         public static void Patch(PatchContext ctx)
         {
 #if !DEBUG
-            _log.Info("Patching mods downloading");
+            Console.WriteLine("Patching mods downloading");
 
             ctx.GetPattern(_downloadWorldModsBlockingMethod).Suffixes
                 .Add(typeof(ModsDownloadingPatch).GetMethod(nameof(Postfix)));
@@ -35,11 +35,11 @@ namespace Torch.Patches
         public static void Postfix(MyWorkshop.ResultData __result, List<MyObjectBuilder_Checkpoint.ModItem> mods)
         {
             if (__result.Result == MyGameServiceCallResult.OK) return;
-            _log.Warn("Missing Mods:");
+            Console.WriteLine("Missing Mods:");
             var mismatchMods = mods.Where(b => __result.Mods.All(c => b.PublishedFileId != c.Id));
             foreach (var mod in mismatchMods)
             {
-                _log.Warn($"\t{mod.PublishedFileId} : {mod.FriendlyName}");
+                Console.WriteLine($"\t{mod.PublishedFileId} : {mod.FriendlyName}");
             }
         }
     }

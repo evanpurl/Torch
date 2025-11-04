@@ -33,7 +33,7 @@ namespace Torch.Managers.PatchManager
                 if (!_patchShims.Add(type))
                     return;
             if (!type.IsSealed || !type.IsAbstract)
-                _log.Warn($"Registering type {type.FullName} as a patch shim type, even though it isn't declared singleton");
+                Console.WriteLine($"Registering type {type.FullName} as a patch shim type, even though it isn't declared singleton");
             MethodInfo method = type.GetMethod("Patch", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
             if (method == null)
             {
@@ -164,7 +164,7 @@ namespace Torch.Managers.PatchManager
             var prevPrintGroup = (value - 1) * 10 / _dirtyPatchCount;
             if (currentPrintGroup != prevPrintGroup && value >= 1)
             {
-                _log.Info($"Patched {value}/{_dirtyPatchCount}.  ({actualPercentage:D2}%)");
+                Console.WriteLine($"Patched {value}/{_dirtyPatchCount}.  ({actualPercentage:D2}%)");
             }
         }
 
@@ -173,7 +173,7 @@ namespace Torch.Managers.PatchManager
         {
             lock (_rewritePatterns)
             {
-                _log.Info("Patching begins...");
+                Console.WriteLine("Patching begins...");
                 _finishedPatchCount = 0;
                 _dirtyPatchCount = _rewritePatterns.Values.Sum(x => x.HasChanged() ? 1 : 0);
 #if false
@@ -184,7 +184,7 @@ namespace Torch.Managers.PatchManager
                 foreach (DecoratedMethod m in _rewritePatterns.Values)
                     DoCommit(m);
 #endif
-                _log.Info("Patching done");
+                Console.WriteLine("Patching done");
 
             }
         }
@@ -209,7 +209,7 @@ namespace Torch.Managers.PatchManager
         {
             lock (_contexts)
             {
-                _log.Info("Removing all patches...");
+                Console.WriteLine("Removing all patches...");
                 foreach (List<PatchContext> set in _contexts.Values)
                     foreach (PatchContext ctx in set)
                         ctx.RemoveAll();

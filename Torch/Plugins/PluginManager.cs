@@ -125,15 +125,15 @@ namespace Torch.Managers
 
         public void LoadPlugins()
         {
-            _log.Info("Loading plugins...");
+            Console.WriteLine("Loading plugins...");
 
             if (!string.IsNullOrEmpty(Torch.Config.TestPlugin))
             {
-                _log.Info($"Loading plugin for debug at {Torch.Config.TestPlugin}");
+                Console.WriteLine($"Loading plugin for debug at {Torch.Config.TestPlugin}");
 
                 foreach (var item in GetLocalPlugins(Torch.Config.TestPlugin, true))
                 {
-                    _log.Info(item.Path);
+                    Console.WriteLine(item.Path);
                     LoadPlugin(item);
                 }
 
@@ -142,7 +142,7 @@ namespace Torch.Managers
                     plugin.Init(Torch);
                 }
 
-                _log.Info($"Loaded {_plugins.Count} plugins.");
+                Console.WriteLine($"Loaded {_plugins.Count} plugins.");
                 PluginsLoaded?.Invoke(_plugins.Values.AsReadOnly());
                 return;
             }
@@ -160,7 +160,7 @@ namespace Torch.Managers
                     // Future fix would be to download them, but instead for now let's
                     // just warn the user it's missing
                     foreach (var missingPlugin in missingPlugins)
-                        _log.Warn($"{item.Manifest.Name} is missing dependency {missingPlugin}. Skipping plugin.");
+                        Console.WriteLine($"{item.Manifest.Name} is missing dependency {missingPlugin}. Skipping plugin.");
 
                     continue;
                 }
@@ -168,7 +168,7 @@ namespace Torch.Managers
                 pluginsToLoad.Add(pluginItem);
             }
 
-            _log.Info($"Is plugin API reachable: {IsApiReachable}");
+            Console.WriteLine($"Is plugin API reachable: {IsApiReachable}");
 
             if (IsApiReachable)
             {
@@ -187,7 +187,7 @@ namespace Torch.Managers
                             if (!TryValidatePluginDependencies(pluginItems, ref pluginItem, out var missingPlugins))
                             {
                                 foreach (var missingPlugin in missingPlugins)
-                                    _log.Warn($"{item.Manifest.Name} is missing dependency {missingPlugin}. Skipping plugin.");
+                                    Console.WriteLine($"{item.Manifest.Name} is missing dependency {missingPlugin}. Skipping plugin.");
 
                                 continue;
                             }
@@ -238,7 +238,7 @@ namespace Torch.Managers
 
             _reloadList.Clear();
 
-            _log.Info($"Loaded {_plugins.Count} plugins.");
+            Console.WriteLine($"Loaded {_plugins.Count} plugins.");
             PluginsLoaded?.Invoke(_plugins.Values.AsReadOnly());
         }
 
@@ -266,7 +266,7 @@ namespace Torch.Managers
                 {
                     if (!debug)
                     {
-                        _log.Warn($"Item '{item}' is missing a manifest, skipping.");
+                        Console.WriteLine($"Item '{item}' is missing a manifest, skipping.");
                         continue;
                     }
 
@@ -281,7 +281,7 @@ namespace Torch.Managers
 
                 if (duplicatePlugin != null)
                 {
-                    _log.Warn($"The GUID provided by {manifest.Name} ({item}) is already in use by {duplicatePlugin.Manifest.Name}.");
+                    Console.WriteLine($"The GUID provided by {manifest.Name} ({item}) is already in use by {duplicatePlugin.Manifest.Name}.");
                     continue;
                 }
 
@@ -291,11 +291,11 @@ namespace Torch.Managers
                     {
                         if (!firstLoad)
                         {
-                            _log.Warn($"Plugin {manifest.Name} ({item}) exists in the plugin directory, but is not listed in torch.cfg. Skipping load!");
+                            Console.WriteLine($"Plugin {manifest.Name} ({item}) exists in the plugin directory, but is not listed in torch.cfg. Skipping load!");
                             continue;
                         }
 
-                        _log.Info($"First-time load: Plugin {manifest.Name} added to torch.cfg.");
+                        Console.WriteLine($"First-time load: Plugin {manifest.Name} added to torch.cfg.");
                         Torch.Config.Plugins.Add(manifest.Guid);
                     }
                 }
@@ -316,7 +316,7 @@ namespace Torch.Managers
 
         private bool DownloadPluginUpdates(List<PluginItem> plugins)
         {
-            _log.Info("Checking for plugin updates...");
+            Console.WriteLine("Checking for plugin updates...");
 
             int count = 0;
 
@@ -326,7 +326,7 @@ namespace Torch.Managers
                 {
                     if (!item.IsZip)
                     {
-                        _log.Warn($"Unzipped plugins cannot be auto-updated. Skipping plugin '{item.Manifest.Name}'");
+                        Console.WriteLine($"Unzipped plugins cannot be auto-updated. Skipping plugin '{item.Manifest.Name}'");
                         return;
                     }
 
@@ -336,7 +336,7 @@ namespace Torch.Managers
 
                     if (latest?.LatestVersion == null)
                     {
-                        _log.Warn($"Plugin '{item.Manifest.Name}' does not have any releases on torchapi.com. Cannot update.");
+                        Console.WriteLine($"Plugin '{item.Manifest.Name}' does not have any releases on torchapi.com. Cannot update.");
                         return;
                     }
 
@@ -354,19 +354,19 @@ namespace Torch.Managers
                         return;
                     }
 
-                    _log.Info($"Updating plugin '{item.Manifest.Name}' from {currentVersion} to {newVersion}.");
+                    Console.WriteLine($"Updating plugin '{item.Manifest.Name}' from {currentVersion} to {newVersion}.");
 
                     await Instance.DownloadPlugin(latest, item.Path);
                     Interlocked.Increment(ref count);
                 }
                 catch (Exception e)
                 {
-                    _log.Warn($"An error occurred updating the plugin '{item.Manifest.Name}'.");
-                    _log.Warn(e);
+                    Console.WriteLine($"An error occurred updating the plugin '{item.Manifest.Name}'.");
+                    Console.WriteLine(e);
                 }
             }).ToArray());
 
-            _log.Info($"Updated {count} plugins.");
+            Console.WriteLine($"Updated {count} plugins.");
 
             return count > 0;
         }
@@ -404,7 +404,7 @@ namespace Torch.Managers
                                 }
                                 catch (Exception e)
                                 {
-                                    _log.Warn(e, $"Failed to read debugging symbols from {item.Filename}:{symbolEntryName}");
+                                    Console.WriteLine($"Failed to read debugging symbols from {item.Filename}:{symbolEntryName} | Error: {e}");
                                 }
                             }
 
@@ -444,7 +444,7 @@ namespace Torch.Managers
                             }
                             catch (Exception e)
                             {
-                                _log.Warn(e, $"Failed to read debugging symbols from {symbolPath}");
+                                Console.WriteLine($"Failed to read debugging symbols from {symbolPath} | Error: {e}");
                             }
                         }
 
@@ -476,7 +476,7 @@ namespace Torch.Managers
                 {
                     if (asm == args.RequestingAssembly)
                     {
-                        _log.Warn($"Couldn't find dependency! {args.RequestingAssembly} depends on {requiredAssemblyName}.");
+                        Console.WriteLine($"Couldn't find dependency! {args.RequestingAssembly} depends on {requiredAssemblyName}.");
                         break;
                     }
                 }
@@ -499,7 +499,7 @@ namespace Torch.Managers
 
         public void ReloadPlugins()
         {
-            _log.Info("Reloading plugins.");
+            Console.WriteLine("Reloading plugins.");
 
             var plugins = _plugins.ToList();
 
@@ -523,10 +523,10 @@ namespace Torch.Managers
 
             plugin.Dispose();
             _plugins.Remove(guid);
-            _log.Info($"{plugin.Name} {plugin.Version} has been unloaded.");
+            Console.WriteLine($"{plugin.Name} {plugin.Version} has been unloaded.");
 
             LoadPlugin(_pluginItems.First(p => p.Manifest.Guid == guid));
-            _log.Info($"{plugin.Name} {plugin.Version} has been reloaded.");
+            Console.WriteLine($"{plugin.Name} {plugin.Version} has been reloaded.");
         }
 
         private void InstantiatePlugin(PluginManifest manifest, IEnumerable<Assembly> assemblies)
@@ -544,7 +544,7 @@ namespace Torch.Managers
                     if (type.IsAbstract)
                         continue;
 
-                    _log.Info($"Loading plugin at {type.FullName}");
+                    Console.WriteLine($"Loading plugin at {type.FullName}");
 
                     if (pluginType != null)
                     {
@@ -575,7 +575,7 @@ namespace Torch.Managers
 
             if (pluginAttr != null)
             {
-                _log.Warn($"Plugin '{manifest.Name}' is using the obsolete {nameof(PluginAttribute)}, using info from attribute if necessary.");
+                Console.WriteLine($"Plugin '{manifest.Name}' is using the obsolete {nameof(PluginAttribute)}, using info from attribute if necessary.");
 
                 manifest.Version = manifest.Version ?? pluginAttr.Version.ToString();
                 manifest.Name = manifest.Name ?? pluginAttr.Name;
@@ -584,7 +584,7 @@ namespace Torch.Managers
                     manifest.Guid = pluginAttr.Guid;
             }
 
-            _log.Info($"Loading plugin '{manifest.Name}' ({manifest.Version})");
+            Console.WriteLine($"Loading plugin '{manifest.Name}' ({manifest.Version})");
 
             TorchPluginBase plugin;
 
@@ -657,7 +657,7 @@ namespace Torch.Managers
                         // it's a missing dependency.
 
                         // For now let's just warn the user. bitMuse is lazy.
-                        _log.Warn($"{dependency.Manifest.Name} is below the requested version for {item.Manifest.Name}."
+                        Console.WriteLine($"{dependency.Manifest.Name} is below the requested version for {item.Manifest.Name}."
                         + Environment.NewLine
                         + $" Desired version: {pluginDependency.MinVersion}, Available version: {dependency.Manifest.Version}");
                         missingDependencies.Add(pluginDependency.Plugin);

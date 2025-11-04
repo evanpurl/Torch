@@ -17,7 +17,16 @@
     <UseWindowsForms>false</UseWindowsForms>
   </PropertyGroup>
 
-  <!-- Game & engine binaries -->
+	<PropertyGroup>
+		<!-- Force only English (United States) culture -->
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+		<!-- Optional: prevents creation of language-specific resource folders -->
+		<GenerateSatelliteAssemblies>false</GenerateSatelliteAssemblies>
+	</PropertyGroup>
+
+
+	<!-- Game & engine binaries -->
   <ItemGroup>
     <Reference Include="HavokWrapper">
       <HintPath>..\GameBinaries\HavokWrapper.dll</HintPath>

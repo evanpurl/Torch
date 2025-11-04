@@ -31,7 +31,7 @@ namespace Torch.Patches
             var transpiler = typeof(AutoSavePatch).GetMethod(nameof(Transpile), BindingFlags.NonPublic | BindingFlags.Static);
             ctx.GetPattern(typeof(MySession).GetMethod("Unload", BindingFlags.Public | BindingFlags.Instance))
                .Transpilers.Add(transpiler);
-            _log.Info("Patching autosave on unload.");
+            Console.WriteLine("Patching autosave on unload.");
         }
 
         private static IEnumerable<MsilInstruction> Transpile(IEnumerable<MsilInstruction> instructions)
@@ -70,17 +70,17 @@ namespace Torch.Patches
 
             if (Sandbox.Engine.Platform.Game.IsDedicated && MySandboxGame.ConfigDedicated.RestartSave)
             {
-                _log.Info("Autosaving during world unloading.");
+                Console.WriteLine("Autosaving during world unloading.");
                 // We have to use the vanilla implementation as the torch implementation does not work in Sandbox.Game.World.MySession:Unload()
                 bool result = MySession.Static.Save();
 
                 if (result)
                 {
-                    _log.Info("Autosave successful.");
+                    Console.WriteLine("Autosave successful.");
                 }
                 else
                 {
-                    _log.Warn("Autosave failed.");
+                    Console.WriteLine("Autosave failed.");
                 }
             }
         }

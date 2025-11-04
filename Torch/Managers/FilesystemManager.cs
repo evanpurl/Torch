@@ -46,7 +46,7 @@ namespace Torch.Managers
                 }
                 catch (Exception ex)
                 {
-                    _log.Warn($"Unhandled exception when clearing temp files. You may ignore this. {ex}");
+                    Console.WriteLine($"Unhandled exception when clearing temp files. You may ignore this. {ex}");
                 }
             }
         }

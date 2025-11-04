@@ -334,7 +334,7 @@ namespace Torch.Commands
                     AutoSavePatch.SaveFromCommand = true;
                     if (save)
                     {
-                        Log.Info("Saving game before stop.");
+                        Console.WriteLine("Saving game before stop.");
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                             .SendMessageAsSelf($"Saving game before stop.");
                         DoSave()?.ContinueWith((a, mod) =>
@@ -346,7 +346,7 @@ namespace Torch.Commands
                     }
                     else
                     {
-                        Log.Info("Stopping server.");
+                        Console.WriteLine("Stopping server.");
                         Context.Torch.Invoke(() => Context.Torch.Stop());
                     }
 
@@ -365,7 +365,7 @@ namespace Torch.Commands
                     Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                            .SendMessageAsSelf($"Restart cancelled.");
 
-                    Log.Warn("Restart cancelled by user.");
+                    Console.WriteLine("Restart cancelled by user.");
 
                     _restartPending = false;
                     TorchBase.Instance.IsRestartPending = _restartPending;
@@ -407,12 +407,12 @@ namespace Torch.Commands
                     AutoSavePatch.SaveFromCommand = true;
                     if (save)
                     {
-                        Log.Info("Saving game before restart.");
+                        Console.WriteLine("Saving game before restart.");
                         Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
                            .SendMessageAsSelf($"Saving game before restart.");
                     }
 
-                    Log.Warn("Initiating server restart.");
+                    Console.WriteLine("Initiating server restart.");
                     TorchBase.Instance.SecondsUntilRestart = -1;
                     Context.Torch.Invoke(() => Context.Torch.Restart(save));
                     yield break;

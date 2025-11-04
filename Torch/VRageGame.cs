@@ -95,18 +95,39 @@ namespace Torch
         }
 
         internal VRageGame(TorchBase torch, Action tweakGameSettings, string appName, uint appSteamId,
-            string userDataPath, string[] runArgs)
+    string userDataPath, string[] runArgs)
         {
             _torch = torch;
-            _tweakGameSettings = tweakGameSettings;
+            _tweakGameSettings = tweakGameSettings ?? (() => { });
             _appName = appName;
             _appSteamId = appSteamId;
-            _rootPath = MyVRage.Platform.System.GetRootPath();
+
+            _rootPath = TryGetRootPathSafe();
+
             _userDataPath = userDataPath;
-            _runArgs = runArgs;
-            _updateThread = new Thread(Run);
+            _runArgs = runArgs ?? Array.Empty<string>();
+
+            Console.WriteLine($"[VRageGame] ctor: app={_appName}, steamId={_appSteamId}, rootPath={_rootPath}, userPath={_userDataPath ?? "<null>"}");
+
+            _updateThread = new Thread(Run) { IsBackground = true, Name = "Torch.VRageGame" };
             _updateThread.Start();
         }
+
+        private static string TryGetRootPathSafe()
+        {
+            try
+            {
+                // Newer builds expose this, but it may be null before VRage init.
+                return MyVRage.Platform?.System?.GetRootPath()
+                       ?? AppContext.BaseDirectory
+                       ?? Environment.CurrentDirectory;
+            }
+            catch
+            {
+                return AppContext.BaseDirectory ?? Environment.CurrentDirectory;
+            }
+        }
+
 
         private void StateChange(GameState s)
         {
@@ -145,15 +166,92 @@ namespace Torch
         {
             bool dedicated = true;
             Environment.SetEnvironmentVariable("SteamAppId", _appSteamId.ToString());
+
+            // Basic Space Engineers setup
             SpaceEngineersGame.SetupBasicGameInfo();
             SpaceEngineersGame.SetupPerGameSettings();
             MyFinalBuildConstants.APP_VERSION = MyPerGameSettings.BasicGameInfo.GameVersion;
             MySessionComponentExtDebug.ForceDisable = true;
             MyPerGameSettings.SendLogToKeen = false;
-            // SpaceEngineersGame.SetupAnalytics();
 
-            //not implemented by keen.. removed in cross-play update
-            //MyVRage.Platform.InitScripting(MyVRageScripting.Create());
+            // --- Initialize MyVRage.Platform if needed ---
+            if (MyVRage.Platform == null)
+            {
+                Console.WriteLine("[VRageGame] MyVRage.Platform is null — initializing manually...");
+                try
+                {
+                    object platform = null;
+
+                    // Try MyVRageWindows (newer builds)
+                    var windowsType = Type.GetType("VRage.Platform.Windows.MyVRageWindows, VRage.Platform.Windows", throwOnError: false);
+                    var platformType = Type.GetType("VRage.Platform.Windows.MyVRagePlatform, VRage.Platform.Windows", throwOnError: false);
+
+                    if (windowsType != null)
+                    {
+                        var initMethod = windowsType.GetMethod("Init", BindingFlags.Public | BindingFlags.Static);
+                        if (initMethod != null)
+                        {
+                            Console.WriteLine("[VRageGame] Calling MyVRageWindows.Init() ...");
+                            // Try to invoke with minimal args (string, log, null, false) or variants
+                            var parameters = initMethod.GetParameters();
+                            var args = new object[parameters.Length];
+                            for (int i = 0; i < parameters.Length; i++)
+                            {
+                                var p = parameters[i];
+                                if (p.ParameterType == typeof(string))
+                                    args[i] = "SpaceEngineersDedicated";
+                                else if (p.ParameterType.FullName?.Contains("IMyLog") == true)
+                                    args[i] = MySandboxGame.Log;
+                                else if (p.ParameterType == typeof(bool))
+                                    args[i] = false;
+                                else
+                                    args[i] = null;
+                            }
+                            initMethod.Invoke(null, args);
+                            Console.WriteLine("[VRageGame] MyVRageWindows.Init() invoked successfully.");
+                        }
+                    }
+
+                    // Fallback: MyVRagePlatform.Create()
+                    if (MyVRage.Platform == null && platformType != null)
+                    {
+                        var createMethod = platformType.GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
+                        if (createMethod != null)
+                        {
+                            platform = createMethod.Invoke(null, null);
+                            typeof(MyVRage).GetMethod("Init", BindingFlags.Public | BindingFlags.Static)!
+                                .Invoke(null, new[] { platform });
+                            Console.WriteLine("[VRageGame] MyVRagePlatform initialized via Create().");
+                        }
+                    }
+
+                    // Fallback 2: MyVRage.Init(new MyVRagePlatform())
+                    if (MyVRage.Platform == null && platformType != null)
+                    {
+                        var ctor = platformType.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)
+                                               .FirstOrDefault(c => c.GetParameters().Length == 0);
+                        if (ctor != null)
+                        {
+                            platform = ctor.Invoke(null);
+                            typeof(MyVRage).GetMethod("Init", BindingFlags.Public | BindingFlags.Static)!
+                                .Invoke(null, new[] { platform });
+                            Console.WriteLine("[VRageGame] MyVRagePlatform initialized via private ctor.");
+                        }
+                    }
+
+                    if (MyVRage.Platform == null)
+                        throw new InvalidOperationException("Failed to initialize MyVRage.Platform (no compatible init path found).");
+
+                    Console.WriteLine("[VRageGame] MyVRagePlatform initialized successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"[VRageGame] Failed to initialize MyVRagePlatform: {ex}");
+                    throw;
+                }
+            }
+
+
             _ = MyVRage.Platform.Scripting;
 
             MyFileSystem.ExePath = Path.GetDirectoryName(typeof(SpaceEngineersGame).Assembly.Location);
@@ -163,110 +261,116 @@ namespace Torch
             MyFileSystem.Reset();
             MyInitializer.InvokeBeforeRun(_appSteamId, _appName, _rootPath, _userDataPath, false, -1, null, _modCachePath);
 
-            _log.Info("Loading Dedicated Config");
-            // object created in SpaceEngineersGame.SetupPerGameSettings()
+            Console.WriteLine("Loading Dedicated Config");
             MySandboxGame.ConfigDedicated.Load();
             MyPlatformGameSettings.CONSOLE_COMPATIBLE = MySandboxGame.ConfigDedicated.ConsoleCompatibility;
 
-            //Type.GetType("VRage.Steam.MySteamService, VRage.Steam").GetProperty("IsActive").GetSetMethod(true).Invoke(service, new object[] {SteamAPI.Init()});
-            _log.Info("Initializing network services");
+            Console.WriteLine("Initializing network services");
 
             var isEos = TorchBase.Instance.Config.UgcServiceType == UGCServiceType.EOS;
-
             if (isEos)
             {
-                _log.Info("Running on Epic Online Services.");
-                _log.Warn("Steam workshop will not work with current settings. Some functions might not work properly!");
+                Console.WriteLine("Running on Epic Online Services.");
+                Console.WriteLine("Steam workshop will not work with current settings. Some functions might not work properly!");
             }
 
             var aggregator = new MyServerDiscoveryAggregator();
             MyServiceManager.Instance.AddService<IMyServerDiscovery>(aggregator);
 
-            IMyGameService service;
-            if (isEos)
+            IMyGameService service = null;
+
+            try
             {
-                service = MyEOSService.Create();
-                MyEOSService.InitNetworking(dedicated, false,
-                    "Space Engineers",
+                if (isEos)
+                {
+                    service = MyEOSService.Create();
+                    MyEOSService.InitNetworking(
+                        dedicated,
+                        false,
+                        "Space Engineers",
+                        service,
+                        "xyza7891A4WeGrpP85BTlBa3BSfUEABN",
+                        "ZdHZVevSVfIajebTnTmh5MVi3KPHflszD9hJB7mRkgg",
+                        "24b1cd652a18461fa9b3d533ac8d6b5b",
+                        "1958fe26c66d4151a327ec162e4d49c8",
+                        "07c169b3b641401496d352cad1c905d6",
+                        "https://retail.epicgames.com/",
+                        MyEOSService.CreatePlatform(),
+                        MySandboxGame.ConfigDedicated.VerboseNetworkLogging,
+                        Enumerable.Empty<string>(),
+                        aggregator,
+                        MyMultiplayer.Channels
+                    );
+
+                    var mockingInventory = new MyMockingInventory(service);
+                    MyServiceManager.Instance.AddService<IMyInventoryService>(mockingInventory);
+                }
+                else
+                {
+                    service = MySteamGameService.Create(dedicated, _appSteamId);
+
+                    // ✅ Register the service FIRST
+                    MyServiceManager.Instance.AddService(service);
+
+                    // ✅ Then safely access WorkshopService
+                    MyGameService.WorkshopService.AddAggregate(MySteamUgcService.Create(_appSteamId, service));
+
+                    MySteamGameService.InitNetworking(
+                        dedicated,
+                        service,
+                        "Space Engineers",
+                        aggregator
+                    );
+                }
+
+
+                if (service == null)
+                    throw new InvalidOperationException("Failed to create IMyGameService (Steam or EOS service is null).");
+
+                // Add Mod.io aggregate workshop
+                MyGameService.WorkshopService.AddAggregate(MyModIoService.Create(
                     service,
-                    "xyza7891A4WeGrpP85BTlBa3BSfUEABN",
-                    "ZdHZVevSVfIajebTnTmh5MVi3KPHflszD9hJB7mRkgg",
-                    "24b1cd652a18461fa9b3d533ac8d6b5b",
-                    "1958fe26c66d4151a327ec162e4d49c8",
-                    "07c169b3b641401496d352cad1c905d6",
-                    "https://retail.epicgames.com/",
-                    MyEOSService.CreatePlatform(),
-                    MySandboxGame.ConfigDedicated.VerboseNetworkLogging,
-                    Enumerable.Empty<string>(),
-                    aggregator,
-                    MyMultiplayer.Channels);
+                    "spaceengineers",
+                    "264",
+                    "1fb4489996a5e8ffc6ec1135f9985b5b",
+                    "331",
+                    "f2b64abe55452252b030c48adc0c1f0e",
+                    MyPlatformGameSettings.UGC_TEST_ENVIRONMENT,
+                    true,
+                    "XboxLive",
+                    "XboxOne"
+                ));
 
-                var mockingInventory = new MyMockingInventory(service);
-                MyServiceManager.Instance.AddService<IMyInventoryService>(mockingInventory);
+                if (!isEos && !MyGameService.HasGameServer)
+                {
+                    Console.WriteLine("Network service is not running! Please reinstall dedicated server.");
+                    return;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                service = MySteamGameService.Create(dedicated, _appSteamId);
-                MyGameService.WorkshopService.AddAggregate(MySteamUgcService.Create(_appSteamId, service));
-                MySteamGameService.InitNetworking(dedicated,
-                    service,
-                    "Space Engineers",
-                    aggregator);
+                _log.Error(ex, "Failed to initialize game service layer.");
+                throw;
             }
 
-            MyServiceManager.Instance.AddService(service);
-
-            MyGameService.WorkshopService.AddAggregate(MyModIoService.Create(
-                service,
-                "spaceengineers",
-                "264",
-                "1fb4489996a5e8ffc6ec1135f9985b5b",
-                "331",
-                "f2b64abe55452252b030c48adc0c1f0e",
-                MyPlatformGameSettings.UGC_TEST_ENVIRONMENT,
-                true,
-                "XboxLive",
-                "XboxOne"));
-
-            if (!isEos && !MyGameService.HasGameServer)
-            {
-                _log.Warn("Network service is not running! Please reinstall dedicated server.");
-                return;
-            }
-
-            _log.Info("Initializing services");
+            Console.WriteLine("Initializing services");
             MyServiceManager.Instance.AddService<IMyMicrophoneService>(new MyNullMicrophone());
-
             MyNetworkMonitor.Init();
+            Console.WriteLine("Services initialized");
 
-            _log.Info("Services initialized");
             MySandboxGame.InitMultithreading();
-            // MyInitializer.InitCheckSum();
-
-
-            // Hook into the VRage plugin system for updates.
-            _getVRagePluginList().Add(_torch);
 
             if (!MySandboxGame.IsReloading)
                 MyFileSystem.InitUserSpecific(dedicated ? null : MyGameService.UserId.ToString());
             MySandboxGame.IsReloading = dedicated;
 
-            // render init
-            {
-                IMyRender renderer = null;
-                if (dedicated)
-                {
-                    renderer = new MyNullRender();
-                }
+            // Renderer setup
+            IMyRender renderer = dedicated ? new MyNullRender() : null;
+            MyRenderProxy.Initialize(renderer);
+            MyRenderProfiler.SetAutocommit(false);
 
-                MyRenderProxy.Initialize(renderer);
-                MyRenderProfiler.SetAutocommit(false);
-                //This broke services?
-                //MyRenderProfiler.InitMemoryHack("MainEntryPoint");
-            }
-
-            // Loads object builder serializers. Intuitive, right?
-            _log.Info("Setting up serializers");
+            // Load serializers
+            Console.WriteLine("Setting up serializers");
             MyPlugins.RegisterGameAssemblyFile(MyPerGameSettings.GameModAssembly);
             if (MyPerGameSettings.GameModBaseObjBuildersAssembly != null)
                 MyPlugins.RegisterBaseGameObjectBuildersAssemblyFile(MyPerGameSettings.GameModBaseObjBuildersAssembly);
@@ -274,47 +378,127 @@ namespace Torch
             MyPlugins.RegisterSandboxAssemblyFile(MyPerGameSettings.SandboxAssembly);
             MyPlugins.RegisterSandboxGameAssemblyFile(MyPerGameSettings.SandboxGameAssembly);
             MyGlobalTypeMetadata.Static.Init(false);
-            typeof(MySandboxGame).GetMethod("Preallocate", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+            typeof(MySandboxGame).GetMethod("Preallocate", BindingFlags.Static | BindingFlags.NonPublic)?.Invoke(null, null);
 
-            // MyEntities static constructor gets invoked too early by EntityTreeViewModel.Init and so
-            // some object builder types do not get registered with the entity object factory.
+            // Fix up entity factory registration
             var entityFactory = Type.GetType("Sandbox.Game.Entities.MyEntityFactory, Sandbox.Game");
+            var objFactory = (VRage.ObjectBuilders.MyObjectFactory<
+                VRage.Game.Entity.MyEntityTypeAttribute,
+                VRage.Game.Entity.MyEntity>)entityFactory?
+                .GetField("m_objectFactory", BindingFlags.Static | BindingFlags.NonPublic)?
+                .GetValue(null);
 
-            var objFactory = (VRage.ObjectBuilders.MyObjectFactory<VRage.Game.Entity.MyEntityTypeAttribute, VRage.Game.Entity.MyEntity>)entityFactory
-                .GetField("m_objectFactory", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-
-            // Make sure the types weren't already registered correctly in MySandboxGame.Preload
-            if (objFactory.TryGetProducedType(typeof(MyObjectBuilder_CubePlacer)) == null)
+            if (objFactory != null && objFactory.TryGetProducedType(typeof(MyObjectBuilder_CubePlacer)) == null)
             {
-                var registerDescriptorsFromAssembly = entityFactory.GetMethod("RegisterDescriptorsFromAssembly", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(Assembly[]) }, null);
+                var registerDescriptorsFromAssembly = entityFactory.GetMethod(
+                    "RegisterDescriptorsFromAssembly",
+                    BindingFlags.Public | BindingFlags.Static,
+                    null,
+                    new[] { typeof(Assembly[]) },
+                    null
+                );
 
-                registerDescriptorsFromAssembly.Invoke(null, new object[] { new[] { MyPlugins.GameAssembly, MyPlugins.SandboxAssembly } });
-                registerDescriptorsFromAssembly.Invoke(null, new object[] { MyPlugins.UserAssemblies });
+                registerDescriptorsFromAssembly?.Invoke(null, new object[] { new[] { MyPlugins.GameAssembly, MyPlugins.SandboxAssembly } });
+                registerDescriptorsFromAssembly?.Invoke(null, new object[] { MyPlugins.UserAssemblies });
             }
         }
 
+
         private void Destroy()
         {
-            _game.Dispose();
-            _game = null;
+            Console.WriteLine("[VRageGame] Begin graceful shutdown...");
 
-            MyGameService.ShutDown();
+            try
+            {
+                // Try to stop the running SpaceEngineersGame if it exists
+                if (_game != null)
+                {
+                    try
+                    {
+                        Console.WriteLine("[VRageGame] Stopping game loop...");
+                        _game.Exit();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"[VRageGame] _game.Exit() threw: {e.Message}");
+                    }
 
-            _getVRagePluginList().Remove(_torch);
+                    // ❌ SKIP Keen’s MySandboxGame.Dispose() to prevent MyScriptCompiler whitelist crash
+                    Console.WriteLine("[VRageGame] Skipping MySandboxGame.Dispose() to avoid MyScriptCompiler static init crash.");
+                    _game = null;
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warn(e, "Game shutdown threw (non-fatal).");
+            }
 
-            MyInitializer.InvokeAfterRun();
+            // --- Clean up Keen services safely ---
+            try
+            {
+                if (MyGameService.HasGameServer)
+                {
+                    Console.WriteLine("[VRageGame] Logging off game server...");
+                    MyGameService.GameServer?.LogOff();
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warn(e, "GameServer.LogOff threw.");
+            }
+
+            try
+            {
+                Console.WriteLine("[VRageGame] Shutting down MyGameService...");
+                MyGameService.ShutDown();
+            }
+            catch (Exception e)
+            {
+                _log.Warn(e, "MyGameService.ShutDown threw.");
+            }
+
+            try
+            {
+                _getVRagePluginList()?.Remove(_torch);
+            }
+            catch
+            {
+                // Ignore: plugin list may be null or uninitialized
+            }
+
+            try
+            {
+                Console.WriteLine("[VRageGame] Invoking MyInitializer.AfterRun...");
+                MyInitializer.InvokeAfterRun();
+            }
+            catch (Exception e)
+            {
+                _log.Warn(e, "InvokeAfterRun threw.");
+            }
+
+            StateChange(GameState.Destroyed);
+            Console.WriteLine("[VRageGame] Shutdown complete. State=Destroyed");
         }
+
+
 
         private void DoStart()
         {
             _game = new SpaceEngineersGame(_runArgs);
 
             if (MySandboxGame.FatalErrorDuringInit)
-            {
                 throw new InvalidOperationException("Failed to start sandbox game: see Keen log for details");
-            }
+
             try
             {
+                // ✅ Safe: at this point, MyPlugins.Init() has already run
+                var pluginList = _getVRagePluginList?.Invoke();
+                if (pluginList != null && !pluginList.Contains(_torch))
+                {
+                    pluginList.Add(_torch);
+                    Console.WriteLine("[VRageGame] Torch plugin added to VRage after SE game init.");
+                }
+
                 StateChange(GameState.Running);
                 _game.Run();
             }
@@ -323,6 +507,7 @@ namespace Torch
                 StateChange(GameState.Stopped);
             }
         }
+
 
         private void DoDisableAutoload()
         {
@@ -352,30 +537,6 @@ namespace Torch
                 return;
             }
             MyObjectBuilder_Checkpoint checkpoint = MyLocalCache.LoadCheckpoint(sessionPath, out ulong checkpointSize);
-            /*if (MySession.IsCompatibleVersion(checkpoint))
-            {
-                var downloadResult = MyWorkshop.DownloadWorldModsBlocking(checkpoint.Mods.Select(b =>
-                {
-                    b.PublishedServiceName = ModItemUtils.GetDefaultServiceName(); 
-                    return b;
-                }).ToList(), null);
-                if (downloadResult.Success)
-                {
-                    MyLog.Default.WriteLineAndConsole("Mods Downloaded");
-                    // MySpaceAnalytics.Instance.SetEntry(MyGameEntryEnum.Load);
-                    MySession.Load(sessionPath, checkpoint, checkpointSize);
-                    _hostServerForSession(MySession.Static, MyMultiplayer.Static);
-                }
-                else
-                {
-                    MyLog.Default.WriteLineAndConsole("Unable to download mods");
-                    MyLog.Default.WriteLineAndConsole("Missing Mods:");
-                    downloadResult.MismatchMods?.ForEach(b => MyLog.Default.WriteLineAndConsole($"\t{b.Title} ({b.Id})"));
-                }
-            }
-            else
-                MyLog.Default.WriteLineAndConsole(MyTexts.Get(MyCommonTexts.DialogTextIncompatibleWorldVersion)
-                    .ToString());*/
         }
 
         private void DoJoinSession(ulong lobbyId)
@@ -426,8 +587,11 @@ namespace Torch
         public void SignalStop()
         {
             _startGame = false;
-            _game.Invoke(DoStop, $"{nameof(VRageGame)}::{nameof(SignalStop)}");
+            var game = _game;
+            if (game != null)
+                game.Invoke(DoStop, $"{nameof(VRageGame)}::{nameof(SignalStop)}");
         }
+
 
         /// <summary>
         /// Signals the game to start itself

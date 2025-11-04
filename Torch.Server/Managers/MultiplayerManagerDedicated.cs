@@ -12,7 +12,7 @@ using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Game.Gui;
 using Sandbox.Game.World;
-using Steamworks;
+using SteamKit2.Unified.Internal.Steamworks;
 using Torch.API;
 using Torch.API.Managers;
 using Torch.Managers;
@@ -148,7 +148,7 @@ namespace Torch.Server.Managers
                 new Action<ulong, JoinResult, ulong, string>(ValidateAuthTicketResponse), MyGameService.GameServer);
             _gameServerUserGroupStatusReplacer.Replace(new Action<ulong, ulong, bool, bool>(UserGroupStatusResponse),
                 MyGameService.GameServer);
-            _log.Info("Inserted authentication intercept");
+            Console.WriteLine("Inserted authentication intercept");
         }
 
         /// <inheritdoc/>
@@ -158,7 +158,7 @@ namespace Torch.Server.Managers
                 _gameServerValidateAuthTicketReplacer.Restore(MyGameService.GameServer);
             if (_gameServerUserGroupStatusReplacer != null && _gameServerUserGroupStatusReplacer.Replaced)
                 _gameServerUserGroupStatusReplacer.Restore(MyGameService.GameServer);
-            _log.Info("Removed authentication intercept");
+            Console.WriteLine("Removed authentication intercept");
             base.Detach();
         }
 
@@ -240,17 +240,17 @@ namespace Torch.Server.Managers
 
             _log.Debug($"ValidateAuthTicketResponse(user={steamId}, response={response}, owner={steamOwner}, permissions={promoteLevel})");
 
-            _log.Info($"Connection attempt by {steamId} from {ip}");
+            Console.WriteLine($"Connection attempt by {steamId} from {ip}");
 
             if (IsProfiling(steamId))
             {
-                _log.Warn($"Rejecting user {steamId} for using Profiler/ModSDK!");
+                Console.WriteLine($"Rejecting user {steamId} for using Profiler/ModSDK!");
                 UserRejected(steamId, JoinResult.ProfilingNotAllowed);
             }
             else if (Torch.CurrentSession.KeenSession.OnlineMode == MyOnlineModeEnum.OFFLINE &&
                      promoteLevel < MyPromoteLevel.Admin)
             {
-                _log.Warn($"Rejecting user {steamId}, world is set to offline and user is not admin.");
+                Console.WriteLine($"Rejecting user {steamId}, world is set to offline and user is not admin.");
                 UserRejected(steamId, JoinResult.TicketCanceled);
             }
             else if (MySandboxGame.ConfigDedicated.GroupID == 0uL)
@@ -283,7 +283,7 @@ namespace Torch.Server.Managers
                 var config = (TorchConfig) Torch.Config;
                 if (config.EnableWhitelist && !config.Whitelist.Contains(info.SteamID))
                 {
-                    _log.Warn($"Rejecting user {info.SteamID} because they are not whitelisted in Torch.cfg.");
+                    Console.WriteLine($"Rejecting user {info.SteamID} because they are not whitelisted in Torch.cfg.");
                     internalAuth = JoinResult.NotInGroup;
                 }
                 else if (MySandboxGame.ConfigDedicated.Reserved.Contains(info.SteamID))
@@ -323,7 +323,7 @@ namespace Torch.Server.Managers
                 }
                 else if (Players.ContainsKey(info.SteamID))
                 {
-                    _log.Warn($"Player {info.SteamID} has already joined!");
+                    Console.WriteLine($"Player {info.SteamID} has already joined!");
                     verdict = JoinResult.AlreadyJoined;
                 }
                 else

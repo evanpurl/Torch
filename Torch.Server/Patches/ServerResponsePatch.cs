@@ -23,7 +23,7 @@ namespace Torch.Patches
             var transpiler = typeof(ServerResponsePatch).GetMethod(nameof(Transpile), BindingFlags.Public | BindingFlags.Static);
             ctx.GetPattern(typeof(MyDedicatedServerBase).GetMethod("Initialize", BindingFlags.NonPublic | BindingFlags.Instance))
                .Transpilers.Add(transpiler);
-            _log.Info("Patching Steam response polling");
+            Console.WriteLine("Patching Steam response polling");
         }
 
         public static IEnumerable<MsilInstruction> Transpile(IEnumerable<MsilInstruction> instructions)
@@ -33,7 +33,7 @@ namespace Torch.Patches
             {
                 if (instruction.OpCode == OpCodes.Ldc_I4 && instruction.Operand is MsilOperandInline.MsilOperandInt32 inlineI32 && inlineI32.Value == 1000)
                 {
-                    _log.Info("Patching Steam response timeout to 5 seconds");
+                    Console.WriteLine("Patching Steam response timeout to 5 seconds");
                     inlineI32.Value = 50;
                 }
 

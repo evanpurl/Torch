@@ -135,7 +135,7 @@ namespace Torch.Managers.ChatManager
                 Color = color == default ? ColorUtils.TranslateColor(Torch.Config.ChatColor) : color,
                 Target = Sync.Players.TryGetIdentityId(targetSteamId)
             };
-            _chatLog.Info($"{author} (to {GetMemberName(targetSteamId)}): {message}");
+            Console.WriteLine($"CHAT: {author} (to {GetMemberName(targetSteamId)}): {message}");
             MyMultiplayerBase.SendScriptedChatMessage(ref scripted);
         }
         
@@ -164,14 +164,14 @@ namespace Torch.Managers.ChatManager
             if (_muted.Contains(message.Author))
             {
                 consumed = true;
-                _chatLog.Warn($"MUTED USER: [{torchMsg.Channel}:{torchMsg.Target}] {torchMsg.Author}: {torchMsg.Message}");
+                Console.WriteLine($"MUTED USER: [{torchMsg.Channel}:{torchMsg.Target}] {torchMsg.Author}: {torchMsg.Message}");
                 return;
             }
 
             MessageProcessing?.Invoke(torchMsg, ref consumed);
 
             if (!consumed)
-                _chatLog.Info($"[{torchMsg.Channel}:{torchMsg.Target}] {torchMsg.Author}: {torchMsg.Message}");
+                Console.WriteLine($"CHAT: [{torchMsg.Channel}:{torchMsg.Target}] {torchMsg.Author}: {torchMsg.Message}");
         }
 
         public static string GetMemberName(ulong steamId)

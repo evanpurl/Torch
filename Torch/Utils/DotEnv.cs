@@ -27,12 +27,12 @@ namespace Torch.Utils
                 if (pair.Length == 1)
                 {
                     Environment.SetEnvironmentVariable(key, null);
-                    Log.Info($"{key} (no value)");
+                    Console.WriteLine($"{key} (no value)");
                     continue;
                 }
 
                 var value = pair[1].Trim();
-                Log.Info($"{key} = {Mask(value)} (masked)");
+                Console.WriteLine($"{key} = {Mask(value)} (masked)");
                 Environment.SetEnvironmentVariable(key, value);
             }
         }

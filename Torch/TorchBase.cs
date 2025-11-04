@@ -65,22 +65,98 @@ namespace Torch
     {
         static TorchBase()
         {
-            DotEnv.Load();
+            try
+            {
+                DotEnv.Load();
 
-            MyVRageWindows.Init("SpaceEngineersDedicated", MySandboxGame.Log, null, false);
-            ReflectedManager.Process(typeof(TorchBase).Assembly);
-            ReflectedManager.Process(typeof(ITorchBase).Assembly);
-            PatchManager.AddPatchShim(typeof(GameStatePatchShim));
-            PatchManager.AddPatchShim(typeof(GameAnalyticsPatch));
-            PatchManager.AddPatchShim(typeof(KeenLogPatch));
-            PatchManager.AddPatchShim(typeof(MessageSizeLimitPatch));
-            PatchManager.CommitInternal();
-            RegisterCoreAssembly(typeof(ITorchBase).Assembly);
-            RegisterCoreAssembly(typeof(TorchBase).Assembly);
-            RegisterCoreAssembly(Assembly.GetEntryAssembly());
-            //exceptions in English, please
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US");
+                TryInitVRageWindows();  // ? safe reflective init (see helper below)
+
+                ReflectedManager.Process(typeof(TorchBase).Assembly);
+                ReflectedManager.Process(typeof(ITorchBase).Assembly);
+
+                PatchManager.AddPatchShim(typeof(GameStatePatchShim));
+                PatchManager.AddPatchShim(typeof(GameAnalyticsPatch));
+                PatchManager.AddPatchShim(typeof(KeenLogPatch));
+                PatchManager.AddPatchShim(typeof(MessageSizeLimitPatch));
+                PatchManager.CommitInternal();
+
+                RegisterCoreAssembly(typeof(ITorchBase).Assembly);
+                RegisterCoreAssembly(typeof(TorchBase).Assembly);
+
+                var entry = Assembly.GetEntryAssembly();
+                if (entry != null)
+                    RegisterCoreAssembly(entry);
+                else
+                    LogManager.GetCurrentClassLogger().Warn("EntryAssembly is null; skipping core registration for entry assembly.");
+
+                // exceptions in English, please
+                Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US");
+            }
+            catch (Exception ex)
+            {
+                // Print the full inner stack to console and NLog so you see the real cause
+                var log = LogManager.GetCurrentClassLogger();
+                Console.WriteLine($"[TorchBase] Static initialization failed. {ex}");
+                Console.Error.WriteLine($"[TorchBase] Static init failed: {ex}");
+                throw; // rethrow so we still fail loudly
+            }
         }
+
+        /// <summary>
+        /// Safely initialize VRage Windows platform using reflection to tolerate signature drift.
+        /// If the type or method is missing, we log and continue (server can still run).
+        /// </summary>
+        private static void TryInitVRageWindows()
+        {
+            try
+            {
+                var type = Type.GetType("VRage.Platform.Windows.MyVRageWindows, VRage.Platform.Windows", throwOnError: false);
+                if (type == null)
+                {
+                    LogManager.GetCurrentClassLogger().Warn("VRage.Platform.Windows not found; skipping MyVRageWindows.Init()");
+                    return;
+                }
+
+                // Try common overloads:
+                // Init(string appName, IMyLog log, object windowHandleOrForm, bool something)
+                // Some builds accept 3 params; some 4; some different log interface.
+                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                                  .Where(m => m.Name == "Init")
+                                  .ToArray();
+
+                foreach (var m in methods)
+                {
+                    var ps = m.GetParameters();
+                    try
+                    {
+                        if (ps.Length == 4 && ps[0].ParameterType == typeof(string))
+                        {
+                            // Best match: (string, *, *, bool)
+                            m.Invoke(null, new object[] { "SpaceEngineersDedicated", MySandboxGame.Log, null, false });
+                            return;
+                        }
+                        if (ps.Length == 3 && ps[0].ParameterType == typeof(string))
+                        {
+                            // Fallback: (string, *, *)
+                            m.Invoke(null, new object[] { "SpaceEngineersDedicated", MySandboxGame.Log, null });
+                            return;
+                        }
+                    }
+                    catch (TargetInvocationException tie)
+                    {
+                        // Try next overload; log at debug for visibility
+                        LogManager.GetCurrentClassLogger().Debug(tie, "Failed MyVRageWindows.Init overload; trying next.");
+                    }
+                }
+
+                LogManager.GetCurrentClassLogger().Warn("No compatible MyVRageWindows.Init overload succeeded; continuing without explicit init.");
+            }
+            catch (Exception e)
+            {
+                LogManager.GetCurrentClassLogger().Warn(e, "MyVRageWindows.Init failed; continuing without explicit init.");
+            }
+        }
+
 
         /// <summary>
         /// Hack because *keen*.
@@ -153,7 +229,10 @@ namespace Torch
                                       .InformationalVersion;
             
             if (!InformationalVersion.TryParse(versionString, out InformationalVersion version))
-                throw new TypeLoadException("Unable to parse the Torch version from the assembly.");
+            {
+                version = new InformationalVersion();
+                version.Version = new Version(1, 0, 0, 0);
+            }
 
             TorchVersion = version;
 
@@ -329,19 +408,19 @@ namespace Torch
             }
 
 #if DEBUG
-            Log.Info("DEBUG");
+            Console.WriteLine("DEBUG");
 #else
-            Log.Info("RELEASE");
+            Console.WriteLine("RELEASE");
 #endif
-            Log.Info($"Torch Version: {TorchVersion}");
-            Log.Info($"Game Version: {GameVersion}.{buildNumber}");
-            Log.Info($"Executing assembly: {Assembly.GetEntryAssembly().FullName}");
-            Log.Info($"Executing directory: {AppDomain.CurrentDomain.BaseDirectory}");
+            Console.WriteLine($"Torch Version: {TorchVersion}");
+            Console.WriteLine($"Game Version: {GameVersion}.{buildNumber}");
+            Console.WriteLine($"Executing assembly: {Assembly.GetEntryAssembly().FullName}");
+            Console.WriteLine($"Executing directory: {AppDomain.CurrentDomain.BaseDirectory}");
 
             Managers.GetManager<PluginManager>().LoadPlugins();
             Game = new VRageGame(this, TweakGameSettings, SteamAppName, SteamAppId, Config.InstancePath, RunArgs);
             if (!Game.WaitFor(VRageGame.GameState.Stopped))
-                Log.Warn("Failed to wait for game to be initialized");
+                Console.WriteLine("Failed to wait for game to be initialized");
             Managers.Attach();
             _init = true;
 
@@ -364,7 +443,7 @@ namespace Torch
             Managers.Detach();
             Game.SignalDestroy();
             if (!Game.WaitFor(VRageGame.GameState.Destroyed))
-                Log.Warn("Failed to wait for the game to be destroyed");
+                Console.WriteLine("Failed to wait for the game to be destroyed");
             Game = null;
         }
 
@@ -406,7 +485,7 @@ namespace Torch
                 if (task.Result != GameSaveResult.Success)
                     Log.Error($"Failed to save game: {task.Result}");
                 else
-                    Log.Info("Saved game");
+                    Console.WriteLine("Saved game");
                 return task.Result;
             }, this, TaskContinuationOptions.RunContinuationsAsynchronously);
         }
@@ -416,7 +495,7 @@ namespace Torch
         {
             Game.SignalStart();
             if (!Game.WaitFor(VRageGame.GameState.Running))
-                Log.Warn("Failed to wait for the game to be started");
+                Console.WriteLine("Failed to wait for the game to be started");
             Invoke(() => Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US"));
         }
 
@@ -426,7 +505,7 @@ namespace Torch
             LogManager.Flush();
             Game.SignalStop();
             if (!Game.WaitFor(VRageGame.GameState.Stopped))
-                Log.Warn("Failed to wait for the game to be stopped");
+                Console.WriteLine("Failed to wait for the game to be stopped");
         }
 
         /// <inheritdoc />

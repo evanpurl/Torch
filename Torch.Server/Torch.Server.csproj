@@ -1,83 +1,98 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <!-- Target .NET 9 for the new runtime; keep 4.8 optionally for backward testing -->
-    <TargetFrameworks>net9.0-windows</TargetFrameworks>
+	<PropertyGroup>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<UseWPF>false</UseWPF>
+		<UseWindowsForms>false</UseWindowsForms>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
 
-    <OutputType>Exe</OutputType>
-    <AssemblyName>Torch.Server</AssemblyName>
-    <RootNamespace>Torch.Server</RootNamespace>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+	<ItemGroup>
+		<ProjectReference Include="..\Torch\Torch.csproj" />
+		<ProjectReference Include="..\Torch.API\Torch.API.csproj" />
+	</ItemGroup>
 
-    <!-- No GUI/WPF -->
-    <UseWPF>false</UseWPF>
-    <UseWindowsForms>false</UseWindowsForms>
+	<PropertyGroup>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0</FileVersion>
+		<InformationalVersion>1.0.0</InformationalVersion>
+	</PropertyGroup>
+	<PropertyGroup>
+		<!-- Force only English (United States) culture -->
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 
-	  <OutputPath>bin\$(Configuration)\</OutputPath>
-  </PropertyGroup>
+		<!-- Optional: prevents creation of language-specific resource folders -->
+		<GenerateSatelliteAssemblies>false</GenerateSatelliteAssemblies>
+	</PropertyGroup>
 
-  <!-- Core Torch dependencies -->
-  <ItemGroup>
-    <ProjectReference Include="..\Torch.API\Torch.API.csproj" />
-    <ProjectReference Include="..\Torch\Torch.csproj" />
-  </ItemGroup>
 
-  <!-- Game binaries (still needed for Space Engineers integration) -->
-  <ItemGroup>
-    <Reference Include="HavokWrapper">
-      <HintPath>..\GameBinaries\HavokWrapper.dll</HintPath>
-    </Reference>
-    <Reference Include="Sandbox.Common">
-      <HintPath>..\GameBinaries\Sandbox.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Sandbox.Game">
-      <HintPath>..\GameBinaries\Sandbox.Game.dll</HintPath>
-    </Reference>
-    <Reference Include="Sandbox.Graphics">
-      <HintPath>..\GameBinaries\Sandbox.Graphics.dll</HintPath>
-    </Reference>
-    <Reference Include="SpaceEngineers.Game">
-      <HintPath>..\GameBinaries\SpaceEngineers.Game.dll</HintPath>
-    </Reference>
-    <Reference Include="SpaceEngineers.ObjectBuilders">
-      <HintPath>..\GameBinaries\SpaceEngineers.ObjectBuilders.dll</HintPath>
-    </Reference>
-    <Reference Include="SpaceEngineers.ObjectBuilders.XmlSerializers">
-      <HintPath>..\GameBinaries\SpaceEngineers.ObjectBuilders.XmlSerializers.dll</HintPath>
-    </Reference>
-    <Reference Include="VRage">
-      <HintPath>..\GameBinaries\VRage.dll</HintPath>
-    </Reference>
-    <Reference Include="VRage.Game">
-      <HintPath>..\GameBinaries\VRage.Game.dll</HintPath>
-    </Reference>
-    <Reference Include="VRage.Library">
-      <HintPath>..\GameBinaries\VRage.Library.dll</HintPath>
-    </Reference>
-    <Reference Include="VRage.Math">
-      <HintPath>..\GameBinaries\VRage.Math.dll</HintPath>
-    </Reference>
-    <Reference Include="VRage.Steam">
-      <HintPath>..\GameBinaries\VRage.Steam.dll</HintPath>
-    </Reference>
-    <Reference Include="VRage.Dedicated">
-      <HintPath>..\GameBinaries\VRage.Dedicated.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+	<ItemGroup>
+		<Reference Include="HavokWrapper">
+			<HintPath>..\GameBinaries\HavokWrapper.dll</HintPath>
+		</Reference>
+		<Reference Include="Sandbox.Common">
+			<HintPath>..\GameBinaries\Sandbox.Common.dll</HintPath>
+		</Reference>
+		<Reference Include="Sandbox.Game">
+			<HintPath>..\GameBinaries\Sandbox.Game.dll</HintPath>
+		</Reference>
+		<Reference Include="Sandbox.Graphics">
+			<HintPath>..\GameBinaries\Sandbox.Graphics.dll</HintPath>
+		</Reference>
+		<Reference Include="SpaceEngineers.Game">
+			<HintPath>..\GameBinaries\SpaceEngineers.Game.dll</HintPath>
+		</Reference>
+		<Reference Include="SpaceEngineers.ObjectBuilders">
+			<HintPath>..\GameBinaries\SpaceEngineers.ObjectBuilders.dll</HintPath>
+		</Reference>
+		<Reference Include="SpaceEngineers.ObjectBuilders.XmlSerializers">
+			<HintPath>..\GameBinaries\SpaceEngineers.ObjectBuilders.XmlSerializers.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage">
+			<HintPath>..\GameBinaries\VRage.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Audio">
+			<HintPath>..\GameBinaries\VRage.Audio.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Dedicated">
+			<HintPath>..\GameBinaries\VRage.Dedicated.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Game">
+			<HintPath>..\GameBinaries\VRage.Game.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Game.XmlSerializers">
+			<HintPath>..\GameBinaries\VRage.Game.XmlSerializers.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Input">
+			<HintPath>..\GameBinaries\VRage.Input.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Library">
+			<HintPath>..\GameBinaries\VRage.Library.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Math">
+			<HintPath>..\GameBinaries\VRage.Math.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Render">
+			<HintPath>..\GameBinaries\VRage.Render.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Render11">
+			<HintPath>..\GameBinaries\VRage.Render11.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Scripting">
+			<HintPath>..\GameBinaries\VRage.Scripting.dll</HintPath>
+		</Reference>
+		<Reference Include="VRage.Steam">
+			<HintPath>..\GameBinaries\VRage.Steam.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 
-  <!-- NuGet dependencies -->
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="NLog" Version="5.2.3" />
-    <PackageReference Include="protobuf-net" Version="3.2.26" />
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.7" />
-  </ItemGroup>
-
-  <PropertyGroup>
-    <!-- Optional: Copy configs after build -->
-    <PostBuildEvent>copy "$(SolutionDir)NLog.config" "$(TargetDir)" &amp;&amp; copy "$(SolutionDir)NLog-user.config" "$(TargetDir)"</PostBuildEvent>
-  </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="NLog" Version="5.2.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.7" />
+	</ItemGroup>
 
 </Project>

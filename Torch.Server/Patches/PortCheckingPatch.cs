@@ -14,14 +14,14 @@ namespace Torch.Patches
         
         public static void Patch(PatchContext ctx)
         {
-            _log.Info("performing port check");
+            Console.WriteLine("performing port check");
             ctx.GetPattern(typeof(Sandbox.Engine.Multiplayer.MyDedicatedServerBase).GetMethod("Initialize", BindingFlags.NonPublic | BindingFlags.Instance))
                 .Prefixes.Add(typeof(PortCheckingPatch).GetMethod(nameof(Initialize)));
         }
         
         public static void Initialize(IPEndPoint serverEndpoint)
         {
-            _log.Info("Checking if port is in use");
+            Console.WriteLine("Checking if port is in use");
 
             // Create a TcpListener on localhost at the specified port
             TcpListener tcpListener = null;

@@ -75,7 +75,7 @@ namespace Torch.Managers.PatchManager
                 errorMessage = Transpilers.Aggregate(errorMessage, (current, transpiler) => current + $"{transpiler.DeclaringType.Namespace}::{transpiler.Name} \n");
 
                 errorMessage = errorMessage.Substring(0, errorMessage.Length - 1);
-                _log.Fatal(errorMessage);
+                Console.WriteLine(errorMessage);
                 throw;
             }
         }
@@ -125,35 +125,55 @@ namespace Torch.Managers.PatchManager
 
         private void SavePatchedMethod(string target)
         {
-            var asmBuilder =
-                AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("SomeName"), AssemblyBuilderAccess.RunAndSave, Path.GetDirectoryName(target));
-            var moduleBuilder = asmBuilder.DefineDynamicModule(Path.GetFileNameWithoutExtension(target), Path.GetFileName(target));
-            var typeBuilder = moduleBuilder.DefineType("Test", TypeAttributes.Public);
+            // Create a dynamic assembly entirely in memory
+            var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(
+                new AssemblyName("TorchDynamicAssembly"),
+                AssemblyBuilderAccess.Run);
 
+            // Define an in-memory module; enable symbol info for easier debugging
+            var moduleName = Path.GetFileNameWithoutExtension(target);
+            var moduleBuilder = asmBuilder.DefineDynamicModule(moduleName);
 
+            // Create a simple dynamic type to hold the patched method
+            var typeBuilder = moduleBuilder.DefineType("PatchedType", TypeAttributes.Public);
+
+            // Build the patched method
             var methodName = _method.Name + $"_{_patchSalt}";
-            var returnType = _method is MethodInfo meth ? meth.ReturnType : typeof(void);
+            var returnType = _method is MethodInfo mi ? mi.ReturnType : typeof(void);
             var parameters = _method.GetParameters();
-            var parameterTypes = (_method.IsStatic ? Enumerable.Empty<Type>() : new[] {_method.DeclaringType})
-                .Concat(parameters.Select(x => x.ParameterType)).ToArray();
+            var parameterTypes = (_method.IsStatic ? Enumerable.Empty<Type>() : new[] { _method.DeclaringType })
+                .Concat(parameters.Select(x => x.ParameterType))
+                .ToArray();
 
-            var patchMethod = typeBuilder.DefineMethod(methodName, MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard,
-                returnType, parameterTypes);
+            var patchMethod = typeBuilder.DefineMethod(
+                methodName,
+                MethodAttributes.Public | MethodAttributes.Static,
+                CallingConventions.Standard,
+                returnType,
+                parameterTypes);
+
             if (!_method.IsStatic)
                 patchMethod.DefineParameter(0, ParameterAttributes.None, INSTANCE_PARAMETER);
-            for (var i = 0; i < parameters.Length; i++)
-                patchMethod.DefineParameter((patchMethod.IsStatic ? 0 : 1) + i, parameters[i].Attributes, parameters[i].Name);
 
+            for (var i = 0; i < parameters.Length; i++)
+                patchMethod.DefineParameter(
+                    (patchMethod.IsStatic ? 0 : 1) + i,
+                    parameters[i].Attributes,
+                    parameters[i].Name);
+
+            // Emit the IL for the patched method
             var generator = new LoggingIlGenerator(patchMethod.GetILGenerator(), LogLevel.Trace);
             List<MsilInstruction> il = EmitPatched((type, pinned) => new MsilLocal(generator.DeclareLocal(type, pinned))).ToList();
-
             MethodTranspiler.EmitMethod(il, generator);
 
-            Type res = typeBuilder.CreateType();
-            asmBuilder.Save(Path.GetFileName(target));
-            foreach (var method in res.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                _log.Info($"Information " + method);
+            // Finalize the type (this makes the method callable)
+            var resultType = typeBuilder.CreateType();
+
+            // Log the emitted methods for debugging
+            foreach (var method in resultType.GetMethods(BindingFlags.Public | BindingFlags.Static))
+                Console.WriteLine($"Emitted dynamic method: {method}");
         }
+
 
         public DynamicMethod ComposePatchedMethod()
         {
@@ -175,7 +195,7 @@ namespace Torch.Managers.PatchManager
                     if (err)
                         _log.Error(msg);
                     else
-                        _log.Info(msg);
+                        Console.WriteLine(msg);
                 }
 
                 if (PrintMsil || DumpTarget != null)
@@ -209,7 +229,7 @@ namespace Torch.Managers.PatchManager
                         _log.Error(failure, $"Failed to patch method {_method}");
                         var ctx = new MethodContext(method);
                         ctx.Read();
-                        MethodTranspiler.IntegrityAnalysis((err, msg) => _log.Warn(msg), ctx.Instructions);
+                        MethodTranspiler.IntegrityAnalysis((err, msg) => Console.WriteLine(msg), ctx.Instructions);
                         LogManager.Flush();
                     }
                     throw;

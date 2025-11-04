@@ -101,10 +101,10 @@ namespace Torch
                                     if (Guid.TryParse(args[i], out Guid g))
                                     {
                                         l.Add(g);
-                                        _log.Info($"added plugin {g}");
+                                        Console.WriteLine($"added plugin {g}");
                                     }
                                     else
-                                        _log.Warn($"Failed to parse GUID {args[i]}");
+                                        Console.WriteLine($"Failed to parse GUID {args[i]}");
                                     i++;
                                 }
                                 property.Value.SetValue(this, l);

@@ -36,7 +36,7 @@ namespace Torch.Patches
             ctx.GetPattern(typeof(MyFactionCollection).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)).Prefixes.Add(typeof(FactionPatch).GetMethod(nameof(AddPrefix)));
             ctx.GetPattern(typeof(MyFactionCollection).GetMethod("Init", BindingFlags.Public | BindingFlags.Instance)).Prefixes.Add(typeof(FactionPatch).GetMethod(nameof(InitPrefix)));
 
-            _log.Info($"Patched {nameof(MyFactionCollection)}.{nameof(MyFactionCollection.Add)}");
+            Console.WriteLine($"Patched {nameof(MyFactionCollection)}.{nameof(MyFactionCollection.Add)}");
         }
 
         public static bool AddPrefix(MyFaction faction, MyFactionCollection __instance)
@@ -47,7 +47,7 @@ namespace Torch.Patches
             if (m_factions.GetType().GetMethod("ContainsKey")?.Invoke(m_factions, new object[] { faction.FactionId }) is
                     bool containsKey && containsKey)
             {
-                _log.Warn($"Faction {faction.Tag} already exists, not adding.");
+                Console.WriteLine($"Faction {faction.Tag} already exists, not adding.");
                 return false;
             }
             
@@ -79,7 +79,7 @@ namespace Torch.Patches
 
         public static bool InitPrefix(MyObjectBuilder_FactionCollection builder, MyFactionCollection __instance)
         {
-            _log.Info("Faction INIT");
+            Console.WriteLine("Faction INIT");
             var m_playerFaction = typeof(MyFactionCollection).GetField("m_playerFaction", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
             var m_relationsBetweenFactions = typeof(MyFactionCollection).GetField("m_relationsBetweenFactions", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
             var m_relationsBetweenPlayersAndFactions = typeof(MyFactionCollection).GetField("m_relationsBetweenPlayersAndFactions", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
@@ -254,7 +254,7 @@ namespace Torch.Patches
                         text: MySpaceTexts.Economy_Notification_ReputationDecreased, font: MyFontEnum.Red)));
 
             _compatDefaultFactions.Invoke(__instance, new object[] { null });
-            _log.Info("Factions INIT END");
+            Console.WriteLine("Factions INIT END");
             return false;
         }
         

@@ -94,13 +94,13 @@ namespace Torch.Patches
 
         private static bool PrefixWriteLineConsole(MyLog __instance, string msg)
         {
-            _log.Info(PrepareLog(__instance).Append(msg));
+            Console.WriteLine(PrepareLog(__instance).Append(msg));
             return false;
         }
 
         private static bool PrefixAppendToClosedLog(MyLog __instance, string text)
         {
-            _log.Info(PrepareLog(__instance).Append(text));
+            Console.WriteLine(PrepareLog(__instance).Append(text));
             return false;
         }
         private static bool PrefixWriteLineOptions(MyLog __instance, string message, LoggingOptions option)
@@ -113,7 +113,7 @@ namespace Torch.Patches
             var logFlag = (bool)logFlagMethod.Invoke(__instance, new object[] { option });
 
             if (logFlag)
-                _log.Info(PrepareLog(__instance).Append(message));
+                Console.WriteLine(PrepareLog(__instance).Append(message));
             return false;
         }
 
